@@ -44,11 +44,6 @@
         }
     },
     "extra": {
-        "laravel": {
-            "providers": [
-                "Tooling\\ApiResources\\Provider"
-            ]
-        },
         "tooling": {
             "rector": {
                 "configured_rules": "tooling/rector/configured-rules.php"
