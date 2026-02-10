@@ -1,5 +1,5 @@
 {
-    "name": "aryeo/api-resources",
+    "name": "aryeo/api-resource-schema",
     "type": "library",
     "repositories": {
         "tooling-laravel": {
@@ -13,7 +13,7 @@
     },
     "require-dev": {
         "orchestra/testbench": "^10.6",
-        "aryeo/tooling-laravel": "^0.0.1",
+        "aryeo/tooling-laravel": "0.0.7",
         "brianium/paratest": "^7.14",
         "phpunit/phpunit": "^12.4.1",
         "pestphp/pest": "^4.1",
