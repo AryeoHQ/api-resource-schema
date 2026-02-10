@@ -1,4 +1,4 @@
-# API Resources Schemas
+# API Resource Schema
 
 A light, typed layer on top of Laravel API Resources that lets you describe your JSON contract with native PHP accessor properties instead of large array structures.
 
@@ -13,7 +13,7 @@ Laravel's Resources are powerful, but big `toArray()` methods grow messy and unt
 ## Installation
 
 ```bash
-composer require aryeo/api-resources
+composer require aryeo/api-resource-schema
 ```
 
 ## Basic Example
