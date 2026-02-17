@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Users;
+namespace Tests\Fixtures\Support\Users;
 
 use Carbon\Carbon;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 use Support\Http\Resources\Schemas;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
-use Tests\Fixtures\Posts\SchemaCollection;
+use Tests\Fixtures\Support\Posts\SchemaCollection;
 
 class Schema extends JsonResource implements Schemas\Contracts\Schema
 {

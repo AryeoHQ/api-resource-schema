@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Teams;
+namespace Tests\Fixtures\Support\Teams;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Support\Http\Resources\Schemas;

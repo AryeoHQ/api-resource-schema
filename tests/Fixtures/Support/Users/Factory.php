@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Users;
+namespace Tests\Fixtures\Support\Users;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<User>

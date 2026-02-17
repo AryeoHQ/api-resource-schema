@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\TeamUser;
+namespace Tests\Fixtures\Support\TeamUser;
 
-use Tests\Fixtures\Teams\Team;
-use Tests\Fixtures\Users\User;
+use Tests\Fixtures\Support\Teams\Team;
+use Tests\Fixtures\Support\Users\User;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<TeamUser>

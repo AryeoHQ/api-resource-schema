@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Posts;
+namespace Tests\Fixtures\Support\Posts;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
 

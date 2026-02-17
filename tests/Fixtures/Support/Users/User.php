@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Users;
+namespace Tests\Fixtures\Support\Users;
 
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UseResource;
@@ -12,9 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Tests\Fixtures\Posts\Post;
-use Tests\Fixtures\Teams\Team;
-use Tests\Fixtures\TeamUser\TeamUser;
+use Tests\Fixtures\Support\Posts\Post;
+use Tests\Fixtures\Support\Teams\Team;
+use Tests\Fixtures\Support\TeamUser\TeamUser;
 
 /**
  * @property string $first_name
