@@ -7,9 +7,9 @@ namespace Tests\Support\Http\Resources\Schemas\Concerns;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeUnlessNotSupported;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeWhenNotSupported;
-use Tests\Fixtures\Teams\Team;
-use Tests\Fixtures\TeamUser\TeamUser;
-use Tests\Fixtures\Users\User;
+use Tests\Fixtures\Support\Teams\Team;
+use Tests\Fixtures\Support\TeamUser\TeamUser;
+use Tests\Fixtures\Support\Users\User;
 use Tests\TestCase;
 
 /**

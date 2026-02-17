@@ -7,8 +7,8 @@ namespace Tests\Support\Http\Resources\Schemas\Reflection;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionProperty;
 use Support\Http\Resources\Schemas\Reflection\Property;
-use Tests\Fixtures\Teams;
-use Tests\Fixtures\TeamUser;
+use Tests\Fixtures\Support\Teams;
+use Tests\Fixtures\Support\TeamUser;
 use Tests\TestCase;
 
 class PropertyTest extends TestCase

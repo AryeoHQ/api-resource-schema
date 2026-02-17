@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Teams;
+namespace Tests\Fixtures\Support\Teams;
 
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UseResource;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Tests\Fixtures\TeamUser\TeamUser;
-use Tests\Fixtures\Users\User;
+use Tests\Fixtures\Support\TeamUser\TeamUser;
+use Tests\Fixtures\Support\Users\User;
 
 #[UseFactory(Factory::class)]
 #[UseResource(Schema::class)]

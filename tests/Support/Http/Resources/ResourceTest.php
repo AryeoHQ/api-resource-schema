@@ -6,7 +6,7 @@ namespace Tests\Support\Http\Resources;
 
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Fields\Discarded;
-use Tests\Fixtures\Users\User;
+use Tests\Fixtures\Support\Users\User;
 use Tests\Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributesCases;
 use Tests\Support\Http\Resources\Schemas\Provides\SchemaCases;
 use Tests\TestCase;

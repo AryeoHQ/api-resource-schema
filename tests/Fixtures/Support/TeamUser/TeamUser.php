@@ -2,23 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Posts;
+namespace Tests\Fixtures\Support\TeamUser;
 
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UseResource;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Tests\Fixtures\Users\User;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Tests\Fixtures\Support\Teams\Team;
+use Tests\Fixtures\Support\Users\User;
 
 #[UseFactory(Factory::class)]
 #[UseResource(Schema::class)]
-class Post extends Model
+class TeamUser extends Pivot
 {
     /** @use HasFactory<Factory>  */
     use HasFactory;
 
-    protected $fillable = ['title', 'rating'];
+    public $incrementing = true;
+
+    public $timestamps = false;
 
     /**
      * @return BelongsTo<User, $this>
@@ -28,8 +31,11 @@ class Post extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function toApiResource(): Schema
+    /**
+     * @return BelongsTo<Team, $this>
+     */
+    public function team(): BelongsTo
     {
-        return new Schema($this);
+        return $this->belongsTo(Team::class);
     }
 }

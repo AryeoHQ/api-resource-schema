@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Posts;
+namespace Tests\Fixtures\Support\Posts;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Support\Http\Resources\Schemas;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
-use Tests\Fixtures\Users;
+use Tests\Fixtures\Support\Users;
 
 class Schema extends JsonResource implements Schemas\Contracts\Schema
 {

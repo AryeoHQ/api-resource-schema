@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Teams;
+namespace Tests\Fixtures\Support\Teams;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<Team>
