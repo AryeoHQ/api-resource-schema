@@ -1,0 +1,9 @@
+services:
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustUseAsSchema
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\AsSchemaCanOnlyBeAddedToSchema
+        tags:
+            - phpstan.rules.rule
