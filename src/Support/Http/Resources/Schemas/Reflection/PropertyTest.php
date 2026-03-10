@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support\Http\Resources\Schemas\Reflection;
+namespace Support\Http\Resources\Schemas\Reflection;
 
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionProperty;
-use Support\Http\Resources\Schemas\Reflection\Property;
 use Tests\Fixtures\Support\Teams;
 use Tests\Fixtures\Support\TeamUser;
 use Tests\TestCase;

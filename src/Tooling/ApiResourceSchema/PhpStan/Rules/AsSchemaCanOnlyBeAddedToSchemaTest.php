@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\Tooling\PhpStan\Rules;
+namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Tooling\Concerns\GetsFixtures;
-use Tooling\ApiResourceSchema\PhpStan\Rules\AsSchemaCanOnlyBeAddedToSchema;
 
 /**
  * @extends RuleTestCase<AsSchemaCanOnlyBeAddedToSchema>
