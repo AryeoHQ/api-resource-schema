@@ -2,19 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support\Http\Resources;
+namespace Support\Http\Resources;
 
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributesTestCases;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Tests\Fixtures\Support\Users\User;
-use Tests\Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributesCases;
-use Tests\Support\Http\Resources\Schemas\Provides\SchemaCases;
 use Tests\TestCase;
 
 class ResourceTest extends TestCase
 {
-    use ConditionallyLoadsAttributesCases;
-    use SchemaCases;
+    use ConditionallyLoadsAttributesTestCases;
 
     #[Test]
     public function to_array(): void

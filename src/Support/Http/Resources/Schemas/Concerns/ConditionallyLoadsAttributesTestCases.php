@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support\Http\Resources\Schemas\Concerns;
+namespace Support\Http\Resources\Schemas\Concerns;
 
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeUnlessNotSupported;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 /**
  * @mixin TestCase
  */
-trait ConditionallyLoadsAttributesCases
+trait ConditionallyLoadsAttributesTestCases
 {
     #[Test]
     public function when_discards(): void
