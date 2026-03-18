@@ -12,7 +12,7 @@
         "laravel/framework": "^12.37",
         "phpstan/phpstan": "^2.1",
         "nikic/php-parser": "^5.7",
-        "aryeo/tooling-laravel": "0.0.30"
+        "aryeo/tooling-laravel": "0.0.31"
     },
     "require-dev": {
         "orchestra/testbench": "^10.6",
