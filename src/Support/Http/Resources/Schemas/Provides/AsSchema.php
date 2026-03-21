@@ -18,7 +18,7 @@ trait AsSchema
     protected Collection $fields {
         get => $this->fields ??= collect(
             new ReflectionObject($this)->getProperties()
-        )->mapInto(Property::class)->filter->isPublic->filter->isOn(static::class)->keyBy->name;
+        )->mapInto(Property::class)->filter->isPublic->filter->isOn(static::class)->keyBy->name; // @phpstan-ignore property.nonObject
     }
 
     /**

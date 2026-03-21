@@ -1,0 +1,13 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use Support\Http\Resources\Schemas\Provides\SchemaCollection;
+
+final class {{ class }} extends ResourceCollection
+{
+    use SchemaCollection;
+}

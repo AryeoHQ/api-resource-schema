@@ -22,7 +22,7 @@ class Schema extends JsonResource implements Schemas\Contracts\Schema
 
     public string $lastName { get => $this->resource->last_name; }
 
-    public string|Discarded $email { get => $this->when(request()->with_email, fn () => $this->resource->email); }
+    public string|Discarded $email { get => $this->when(request()->with_email, fn () => $this->resource->email); } // @phpstan-ignore property.notFound
 
     public string|Discarded $username {
         get => $this->unless(! request()->has('with_username'), fn () => $this->resource->username);

@@ -7,9 +7,17 @@ namespace Tests;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench;
+use Support\Http\Resources\Schemas\Providers\Provider;
 
 abstract class TestCase extends Testbench\TestCase
 {
+    protected function getPackageProviders($app): array
+    {
+        return [
+            Provider::class,
+        ];
+    }
+
     protected function defineDatabaseMigrations(): void
     {
         Schema::create('users', function (Blueprint $table): void {

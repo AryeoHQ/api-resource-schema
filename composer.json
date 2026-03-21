@@ -10,6 +10,7 @@
     "require": {
         "php": "^8.4",
         "laravel/framework": "^12.37",
+        "symfony/console": "^7.0",
         "phpstan/phpstan": "^2.1",
         "nikic/php-parser": "^5.7",
         "aryeo/tooling-laravel": "0.0.31"
@@ -35,6 +36,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Workbench\\App\\": "workbench/app/",
             "Tests\\": "tests/"
         }
     },
@@ -52,6 +54,11 @@
         }
     },
     "extra": {
+        "laravel": {
+            "providers": [
+                "Support\\Http\\Resources\\Schemas\\Providers\\Provider"
+            ]
+        },
         "tooling": {
             "rector": {
                 "configured_rules": "tooling/rector/configured-rules.php"
