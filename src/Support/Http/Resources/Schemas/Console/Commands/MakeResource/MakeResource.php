@@ -6,6 +6,7 @@ namespace Support\Http\Resources\Schemas\Console\Commands\MakeResource;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Foundation\Console\ResourceMakeCommand;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Stringable;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\References\Schema;
@@ -73,11 +74,11 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
     }
 
     /**
-     * @param  array<int, string>  $imports
+     * @param  \Illuminate\Support\Collection<int, string>  $imports
      */
-    protected function replaceImports(Stringable $stub, array $imports): Stringable
+    protected function replaceImports(Stringable $stub, Collection $imports): Stringable
     {
-        $replacement = str(collect($imports)
+        $replacement = str($imports
             ->map(fn (string $import) => str($import)->trim('\\')->wrap('use ', ';'))
             ->implode("\n"));
 
@@ -88,11 +89,11 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
     }
 
     /**
-     * @param  array<int, string>  $properties
+     * @param  \Illuminate\Support\Collection<int, string>  $properties
      */
-    protected function replaceProperties(Stringable $stub, array $properties): Stringable
+    protected function replaceProperties(Stringable $stub, Collection $properties): Stringable
     {
-        $replacement = str(collect($properties)
+        $replacement = str($properties
             ->map(fn (string $property) => str($property)->prepend('    '))
             ->implode("\n\n"));
 
