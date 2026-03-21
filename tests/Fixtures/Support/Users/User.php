@@ -53,7 +53,7 @@ class User extends Model
     }
 
     /**
-     * @return Attribute<string|null, never>
+     * @return Attribute<string|null, never> @phpstan-ignore generics.notGeneric
      */
     public function middleInitial(): Attribute
     {
@@ -63,7 +63,7 @@ class User extends Model
     }
 
     /**
-     * @return Attribute<string, never>
+     * @return Attribute<string, never> @phpstan-ignore generics.notGeneric
      */
     public function fullName(): Attribute
     {
