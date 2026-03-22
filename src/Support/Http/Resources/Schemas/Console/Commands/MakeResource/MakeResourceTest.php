@@ -115,8 +115,8 @@ final class MakeResourceTest extends TestCase
     public function it_injects_properties_from_event_listeners(): void
     {
         Event::listen(BuildingSchema::class, function (BuildingSchema $event): void {
-            $event->imports[] = 'App\Models\User';
-            $event->properties[] = 'public User $id { get => $this->resource->getKey(); }';
+            $event->imports->push('App\Models\User');
+            $event->properties->push('public User $id { get => $this->resource->getKey(); }');
         });
 
         $this->artisan($this->command, $this->baselineInput);
