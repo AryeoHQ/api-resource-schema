@@ -11,6 +11,8 @@ use Support\Http\Resources\Schemas\Providers\Provider;
 
 abstract class TestCase extends Testbench\TestCase
 {
+    protected $enablesPackageDiscoveries = true;
+
     protected function getPackageProviders($app): array
     {
         return [
