@@ -24,12 +24,6 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
     use GeneratorCommandCompatibility;
     use RetrievesNamespace;
 
-    public string $stub {
-        get => $this->shouldBeCollection()
-            ? __DIR__.'/stubs/schema-collection.stub'
-            : __DIR__.'/stubs/schema.stub';
-    }
-
     public Stringable $nameInput {
         get => $this->nameInput ??= str($this->argument('name'));
     }
