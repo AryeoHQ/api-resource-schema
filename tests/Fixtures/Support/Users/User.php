@@ -24,7 +24,7 @@ use Tests\Fixtures\Support\TeamUser\TeamUser;
  * @property string $full_name
  */
 #[UseFactory(Factory::class)]
-#[UseResource(Schema::class)]
+#[UseResource(Schemas\User::class)]
 class User extends Model
 {
     /** @use HasFactory<Factory>  */

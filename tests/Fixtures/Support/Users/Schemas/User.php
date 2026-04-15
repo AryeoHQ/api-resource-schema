@@ -2,17 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Support\Users;
+namespace Tests\Fixtures\Support\Users\Schemas;
 
 use Carbon\Carbon;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Support\Http\Resources\Schemas;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
-use Tests\Fixtures\Support\Posts\SchemaCollection;
+use Tests\Fixtures\Support\Posts\Schemas\Posts;
 
-class Schema extends JsonResource implements Schemas\Contracts\Schema
+#[CollectedBy(Users::class)]
+class User extends JsonResource implements Schemas\Contracts\Schema
 {
     use AsSchema;
 
@@ -35,7 +37,7 @@ class Schema extends JsonResource implements Schemas\Contracts\Schema
     public Carbon|Discarded $deletedAt { get => $this->whenNotNull($this->resource->deleted_at); }
 
     public ResourceCollection|Discarded $posts {
-        get => $this->whenLoaded('posts', fn () => SchemaCollection::make($this->resource->posts));
+        get => $this->whenLoaded('posts', fn () => Posts::make($this->resource->posts));
     }
 
     public int|Discarded $postsCount { get => $this->whenCounted('posts', fn () => $this->resource->posts_count); }

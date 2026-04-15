@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace {{ namespace }};
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy;
 use Support\Http\Resources\Schemas\Contracts\Schema;
 use Support\Http\Resources\Schemas\Provides\AsSchema;{{ imports }}
 
+#[CollectedBy({{ collection }}::class)]
 final class {{ class }} extends JsonResource implements Schema
 {
     use AsSchema;{{ properties }}

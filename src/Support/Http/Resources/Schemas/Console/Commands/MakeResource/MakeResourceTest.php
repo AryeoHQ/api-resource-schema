@@ -24,20 +24,20 @@ final class MakeResourceTest extends TestCase
     use RetrievesNamespaceTestCases;
 
     public References\Schema $reference {
-        get => new References\Schema(name: 'TestSchema', baseNamespace: 'App');
+        get => new References\Schema(name: 'Post', baseNamespace: 'App');
     }
 
     private References\Schema $nestedReference {
-        get => new References\Schema(name: 'TestSchema', baseNamespace: 'App\\Nested\\Deeper');
+        get => new References\Schema(name: 'Post', baseNamespace: 'App\\Nested\\Deeper');
     }
 
     private References\SchemaCollection $collectionReference {
-        get => new References\SchemaCollection(name: 'TestSchemaCollection', baseNamespace: 'App');
+        get => new References\SchemaCollection(name: 'Posts', baseNamespace: 'App');
     }
 
     /** @var array<string, mixed> */
     public array $baselineInput {
-        get => ['name' => 'TestSchema', '--namespace' => 'App\\'];
+        get => ['name' => 'Post', '--namespace' => 'App\\'];
     }
 
     /** @var array<string, mixed> */
@@ -47,12 +47,12 @@ final class MakeResourceTest extends TestCase
 
     /** @var array<string, mixed> */
     public array $withoutNamespaceBackslashInput {
-        get => ['name' => 'TestSchema', '--namespace' => 'App'];
+        get => ['name' => 'Post', '--namespace' => 'App'];
     }
 
     /** @var array<string, mixed> */
     public array $withNestedNamespaceInput {
-        get => ['name' => 'TestSchema', '--namespace' => 'App\\Nested\\Deeper'];
+        get => ['name' => 'Post', '--namespace' => 'App\\Nested\\Deeper'];
     }
 
     protected string $expectedNestedFilePath {
@@ -78,13 +78,12 @@ final class MakeResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_can_make_a_schema_collection(): void
+    public function it_also_makes_a_collection(): void
     {
         Composer::fake();
 
         $this->artisan($this->command, [
-            'name' => 'TestSchemaCollection',
-            '--collection' => true,
+            'name' => 'Post',
             '--namespace' => 'App\\',
         ]);
 
@@ -93,7 +92,8 @@ final class MakeResourceTest extends TestCase
             File::get($this->collectionReference->filePath->toString()),
             function (string $collectionClass) {
                 $this->assertStringContainsString('extends '.class_basename(ResourceCollection::class), $collectionClass);
-                $this->assertStringContainsString('use '.class_basename(Provides\SchemaCollection::class).';', $collectionClass);
+                $this->assertStringContainsString('implements '.class_basename(Contracts\SchemaCollection::class), $collectionClass);
+                $this->assertStringContainsString('use '.class_basename(Provides\AsSchemaCollection::class).';', $collectionClass);
             }
         );
     }
@@ -104,7 +104,7 @@ final class MakeResourceTest extends TestCase
         Composer::fake();
 
         $this->artisan($this->command, [
-            'name' => 'TestSchemaCollection',
+            'name' => 'Posts',
             '--namespace' => 'App\\',
         ]);
 

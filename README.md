@@ -21,8 +21,10 @@ composer require aryeo/api-resource-schema
 ```php
 use Illuminate\Http\Resources\Json\JsonResource;
 use Support\Http\Resources\Schemas;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 
+#[CollectedBy(UserSchemaCollection::class)]
 class UserSchema extends JsonResource implements Schemas\Contracts\Schema
 {
 	use Schemas\Provides\AsSchema;
@@ -50,8 +52,14 @@ return UserSchema::collection($users);
 Create a `SchemaCollection` that extends `ResourceCollection` if you want to customize wrapping or meta:
 
 ```php
-class UserSchemaCollection extends ResourceCollection
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use Support\Http\Resources\Schemas\Attributes\Collects;
+use Support\Http\Resources\Schemas\Contracts\SchemaCollection;
+use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
+
+#[Collects(UserSchema::class)]
+class UserSchemaCollection extends ResourceCollection implements SchemaCollection
 {
-	public $collects = UserSchema::class;
+	use AsSchemaCollection;
 }
 ```

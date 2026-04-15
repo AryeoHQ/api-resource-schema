@@ -12,4 +12,11 @@ final class Schema extends GenericClass
     public Stringable $stubPath {
         get => str(__DIR__.'/stubs/schema.stub');
     }
+
+    public SchemaCollection $collection {
+        get => resolve(SchemaCollection::class, [
+            'name' => $this->name->plural(),
+            'baseNamespace' => $this->baseNamespace,
+        ]);
+    }
 }

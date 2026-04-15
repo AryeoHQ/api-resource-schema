@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Console\Commands\MakeResource;
 
+use Illuminate\Console\Command;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Foundation\Console\ResourceMakeCommand;
 use Illuminate\Support\Collection;
@@ -16,7 +17,6 @@ use Tooling\GeneratorCommands\Concerns\CreatesColocatedTests;
 use Tooling\GeneratorCommands\Concerns\GeneratorCommandCompatibility;
 use Tooling\GeneratorCommands\Concerns\RetrievesNamespace;
 use Tooling\GeneratorCommands\Contracts\GeneratesFile;
-use Tooling\GeneratorCommands\References\Contracts\Reference;
 
 class MakeResource extends ResourceMakeCommand implements GeneratesFile
 {
@@ -25,11 +25,11 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
     use RetrievesNamespace;
 
     public Stringable $nameInput {
-        get => $this->nameInput ??= str($this->argument('name'));
+        get => $this->nameInput ??= str($this->argument('name'))->singular();
     }
 
-    public Reference $reference {
-        get => $this->reference ??= $this->shouldBeCollection()
+    public Schema|SchemaCollection $reference {
+        get => $this->reference ??= $this->isCollection()
             ? resolve(SchemaCollection::class, [
                 'name' => $this->nameInput,
                 'baseNamespace' => $this->baseNamespace,
@@ -40,31 +40,68 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
             ]);
     }
 
-    public function handle(): null|bool
+    public function handle(): bool
     {
         $this->resolveNamespace();
 
-        if ($this->shouldBeCollection()) {
-            $this->type = 'Resource collection';
+        if ($this->isCollection()) {
+            $this->generateSchemaCollection();
+        } else {
+            $this->generateSchema();
+            $this->generateSchemaCollection();
         }
 
-        return GeneratorCommand::handle();
+        return (bool) Command::SUCCESS;
+    }
+
+    protected function isCollection(): bool
+    {
+        return $this->option('collection') || $this->nameInput->endsWith('Collection');
+    }
+
+    protected function generateSchema(): void
+    {
+        GeneratorCommand::handle();
+    }
+
+    protected function generateSchemaCollection(): void
+    {
+        if (! ($this->reference instanceof SchemaCollection)) {
+            $this->reference = $this->reference->collection;
+            $this->nameInput = $this->reference->name;
+        }
+
+        $this->type = 'Resource collection';
+
+        GeneratorCommand::handle();
     }
 
     protected function buildClass($name): string
     {
         $stub = str(GeneratorCommand::buildClass($name));
 
-        if ($this->shouldBeCollection()) {
-            return $stub->value();
-        }
+        return match ($this->reference instanceof SchemaCollection) {
+            true => $this->prepareSchemaCollectionStub($name, $stub)->value(),
+            false => $this->prepareSchemaStub($name, $stub)->value(),
+        };
+    }
 
+    protected function prepareSchemaStub(string $name, Stringable $stub): Stringable
+    {
         $event = tap(new BuildingSchema($name), event(...));
 
+        $stub = $stub->replace('{{ collection }}', $this->reference->collection->name->value());
         $stub = $this->replaceImports($stub, $event->imports);
         $stub = $this->replaceProperties($stub, $event->properties);
 
-        return $stub->value();
+        return $stub;
+    }
+
+    protected function prepareSchemaCollectionStub(string $name, Stringable $stub): Stringable
+    {
+        $stub = $stub->replace('{{ schema }}', $this->reference->schema->name->value());
+
+        return $stub;
     }
 
     /**
@@ -97,20 +134,14 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
         );
     }
 
-    protected function shouldBeCollection(): bool
-    {
-        return $this->option('collection') ||
-               str_ends_with($this->argument('name'), 'Collection');
-    }
-
     /**
      * @return array<int, InputOption>
      */
     protected function getOptions(): array
     {
         return [
-            new InputOption('force', 'f', InputOption::VALUE_NONE, 'Create the class even if it already exists'),
             new InputOption('collection', 'c', InputOption::VALUE_NONE, 'Create a resource collection'),
+            new InputOption('force', 'f', InputOption::VALUE_NONE, 'Create the class even if it already exists'),
             ...$this->getNamespaceInputOptions(),
         ];
     }

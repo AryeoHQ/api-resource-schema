@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tests\Fixtures\Support\Users\User;
 
 #[UseFactory(Factory::class)]
-#[UseResource(Schema::class)]
+#[UseResource(Schemas\Post::class)]
 class Post extends Model
 {
     /** @use HasFactory<Factory>  */
@@ -26,10 +26,5 @@ class Post extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function toApiResource(): Schema
-    {
-        return new Schema($this);
     }
 }

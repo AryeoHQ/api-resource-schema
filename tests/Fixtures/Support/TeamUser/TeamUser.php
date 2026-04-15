@@ -13,7 +13,7 @@ use Tests\Fixtures\Support\Teams\Team;
 use Tests\Fixtures\Support\Users\User;
 
 #[UseFactory(Factory::class)]
-#[UseResource(Schema::class)]
+#[UseResource(Schemas\TeamUser::class)]
 class TeamUser extends Pivot
 {
     /** @use HasFactory<Factory>  */
