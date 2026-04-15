@@ -16,7 +16,7 @@ class PropertyTest extends TestCase
     public function it_is_makeable(): void
     {
         $property = Property::make(
-            new ReflectionProperty(Teams\Schema::class, 'name')
+            new ReflectionProperty(Teams\Schemas\Team::class, 'name')
         );
 
         $this->assertInstanceOf(Property::class, $property);
@@ -26,7 +26,7 @@ class PropertyTest extends TestCase
     public function it_can_get_property_name(): void
     {
         $property = Property::make(
-            new ReflectionProperty(Teams\Schema::class, 'name')
+            new ReflectionProperty(Teams\Schemas\Team::class, 'name')
         );
 
         $this->assertSame('name', $property->name->toString());
@@ -36,7 +36,7 @@ class PropertyTest extends TestCase
     public function it_can_check_if_property_is_public(): void
     {
         $property = Property::make(
-            new ReflectionProperty(Teams\Schema::class, 'name')
+            new ReflectionProperty(Teams\Schemas\Team::class, 'name')
         );
 
         $this->assertTrue($property->isPublic);
@@ -46,18 +46,18 @@ class PropertyTest extends TestCase
     public function it_can_check_if_property_is_on_class(): void
     {
         $property = Property::make(
-            new ReflectionProperty(Teams\Schema::class, 'name')
+            new ReflectionProperty(Teams\Schemas\Team::class, 'name')
         );
 
-        $this->assertTrue($property->isOn(Teams\Schema::class));
-        $this->assertFalse($property->isOn(TeamUser\Schema::class));
+        $this->assertTrue($property->isOn(Teams\Schemas\Team::class));
+        $this->assertFalse($property->isOn(TeamUser\Schemas\TeamUser::class));
     }
 
     #[Test]
     public function it_forwards_calls_to_reflection(): void
     {
         $property = Property::make(
-            new ReflectionProperty(Teams\Schema::class, 'name')
+            new ReflectionProperty(Teams\Schemas\Team::class, 'name')
         );
 
         $this->assertTrue($property->hasType());
@@ -69,7 +69,7 @@ class PropertyTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
 
         $property = Property::make(
-            new ReflectionProperty(Teams\Schema::class, 'name')
+            new ReflectionProperty(Teams\Schemas\Team::class, 'name')
         );
 
         $property->invalidMethod(); // @phpstan-ignore-line

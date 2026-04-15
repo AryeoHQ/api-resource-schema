@@ -7,3 +7,19 @@ services:
         class: Tooling\ApiResourceSchema\PhpStan\Rules\AsSchemaCanOnlyBeAddedToSchema
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaCollectionMustUseAsSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\AsSchemaCollectionCanOnlyBeAddedToSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaCollectionMustDefineCollects
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustDefineCollectedBy
+        tags:
+            - phpstan.rules.rule

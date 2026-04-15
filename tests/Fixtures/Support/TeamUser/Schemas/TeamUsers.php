@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace {{ namespace }};
+namespace Tests\Fixtures\Support\TeamUser\Schemas;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Support\Http\Resources\Schemas\Attributes\Collects;
 use Support\Http\Resources\Schemas\Contracts\SchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 
-#[Collects({{ schema }}::class)]
-final class {{ class }} extends ResourceCollection implements SchemaCollection
+#[Collects(TeamUser::class)]
+class TeamUsers extends ResourceCollection implements SchemaCollection
 {
     use AsSchemaCollection;
 }

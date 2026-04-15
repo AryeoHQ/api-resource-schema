@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Support\Teams;
+namespace Tests\Fixtures\Support\Teams\Schemas;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Support\Http\Resources\Schemas;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 
-class Schema extends JsonResource implements Schemas\Contracts\Schema
+#[CollectedBy(Teams::class)]
+class Team extends JsonResource implements Schemas\Contracts\Schema
 {
     use AsSchema;
 

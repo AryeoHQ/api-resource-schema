@@ -13,7 +13,7 @@ use Tests\Fixtures\Support\TeamUser\TeamUser;
 use Tests\Fixtures\Support\Users\User;
 
 #[UseFactory(Factory::class)]
-#[UseResource(Schema::class)]
+#[UseResource(Schemas\Team::class)]
 class Team extends Model
 {
     /** @use HasFactory<Factory>  */
