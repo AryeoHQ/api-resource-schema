@@ -1,3 +1,6 @@
+includes:
+    - schema-collection-return-type.neon
+
 services:
     -
         class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustUseAsSchema
