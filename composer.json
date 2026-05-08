@@ -13,7 +13,7 @@
         "symfony/console": "^7.0",
         "phpstan/phpstan": "^2.1",
         "nikic/php-parser": "^5.7",
-        "aryeo/tooling-laravel": "0.0.36"
+        "aryeo/tooling-laravel": "0.0.37"
     },
     "require-dev": {
         "orchestra/testbench": "^10.6",
@@ -61,9 +61,31 @@
         },
         "tooling": {
             "rector": {
-                "configured_rules": "tooling/rector/configured-rules.php"
+                "configured_rules": "tooling/rector/configured-rules.php",
+                "config": {
+                    "paths": [
+                        "src",
+                        "tests/Fixtures/Support"
+                    ]
+                }
             },
-            "phpstan": "tooling/phpstan/phpstan.neon"
+            "phpstan": {
+                "rules": "tooling/phpstan/phpstan.neon",
+                "config": {
+                    "paths": [
+                        "src",
+                        "tests/Fixtures/Support"
+                    ]
+                }
+            },
+            "pint": {
+                "config": {
+                    "paths": [
+                        "src",
+                        "tests/Fixtures/Support"
+                    ]
+                }
+            }
         }
     }
 }
