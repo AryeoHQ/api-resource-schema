@@ -8,6 +8,7 @@ use BadMethodCallException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use ReflectionProperty;
+use Support\Http\Resources\Schemas\Attributes\Hidden\Hidden;
 
 /**
  * @mixin ReflectionProperty
@@ -22,6 +23,14 @@ final class Property
 
     public bool $isPublic {
         get => $this->isPublic ??= $this->reflection->isPublic();
+    }
+
+    public bool $isStatic {
+        get => $this->isStatic ??= $this->reflection->isStatic();
+    }
+
+    public bool $isHidden {
+        get => $this->isHidden ??= $this->reflection->getAttributes(Hidden::class) !== [];
     }
 
     public function __construct(ReflectionProperty $reflection)

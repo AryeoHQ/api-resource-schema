@@ -28,9 +28,9 @@ class AsSchemaCollectionCanOnlyBeAddedToSchemaCollection extends Rule
     public function handle(Node $node, Scope $scope): void
     {
         $this->error(
-            '[AsSchemaCollection] trait can only be used on implementations of [SchemaCollection].',
+            '['.class_basename(AsSchemaCollection::class).'] trait can only be used on implementations of ['.class_basename(SchemaCollection::class).'].',
             $this->findAsSchemaCollectionTrait($node)->getStartLine(),
-            'apiResourceSchema.asSchemaCollectionOnlyOnSchemaCollection'
+            'AsSchemaCollection.SchemaCollection.only'
         );
     }
 

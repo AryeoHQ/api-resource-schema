@@ -27,9 +27,9 @@ class SchemaMustUseAsSchema extends Rule
     public function handle(Node $node, Scope $scope): void
     {
         $this->error(
-            '[Schema] must use the [AsSchema] trait.',
-            $node->name->getStartLine(),
-            'apiResourceSchema.schemaMustUseAsSchema'
+            '['.class_basename(Schema::class).'] must use the ['.class_basename(AsSchema::class).'] trait.',
+            $node->name?->getStartLine() ?? $node->getStartLine(),
+            'Schema.AsSchema.required'
         );
     }
 }

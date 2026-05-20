@@ -12,7 +12,7 @@ use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Type\DynamicStaticMethodReturnTypeExtension;
 use PHPStan\Type\ObjectType;
 use PHPStan\Type\Type;
-use Support\Http\Resources\Schemas\Attributes\CollectedBy;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
 use Support\Http\Resources\Schemas\Contracts\Schema;
 
 final class SchemaCollectionReturnType implements DynamicStaticMethodReturnTypeExtension

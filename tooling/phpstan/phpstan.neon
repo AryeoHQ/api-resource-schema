@@ -3,6 +3,14 @@ includes:
 
 services:
     -
+        class: PhpParser\ParserFactory
+
+    -
+        class: PhpParser\Parser
+        factory: @PhpParser\ParserFactory::createForNewestSupportedVersion()
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaVersionResolver
+    -
         class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustUseAsSchema
         tags:
             - phpstan.rules.rule
@@ -24,5 +32,45 @@ services:
             - phpstan.rules.rule
     -
         class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustDefineCollectedBy
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustDefineVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableMustUseTransformsToSchema
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\TransformsToSchemaCanOnlyBeAddedToSchemable
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableCollectionMustUseTransformsToSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\TransformsToSchemaCollectionCanOnlyBeAddedToSchemableCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableMustDefineCollectedBy
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableCollectedByMustNotBeBaseCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableCollectedByMustImplementSchemableCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaMustHaveMatchingUseSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaCollectionMustHaveMatchingUseSchema
         tags:
             - phpstan.rules.rule

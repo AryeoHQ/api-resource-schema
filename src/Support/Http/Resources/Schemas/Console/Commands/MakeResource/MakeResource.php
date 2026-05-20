@@ -12,6 +12,7 @@ use Illuminate\Support\Stringable;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\References\Schema;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\References\SchemaCollection;
+use Support\Http\Resources\Schemas\Console\Concerns\ResolvesSchemaVersion;
 use Symfony\Component\Console\Input\InputOption;
 use Tooling\GeneratorCommands\Concerns\CreatesColocatedTests;
 use Tooling\GeneratorCommands\Concerns\GeneratorCommandCompatibility;
@@ -22,41 +23,36 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
 {
     use CreatesColocatedTests;
     use GeneratorCommandCompatibility;
+    use ResolvesSchemaVersion;
     use RetrievesNamespace;
 
     public Stringable $nameInput {
-        get => $this->nameInput ??= str($this->argument('name'))->singular();
+        get => $this->nameInput ??= str($this->argument('name'))->singular()->beforeLast('Collection');
     }
 
     public Schema|SchemaCollection $reference {
-        get => $this->reference ??= $this->isCollection()
-            ? resolve(SchemaCollection::class, [
-                'name' => $this->nameInput,
-                'baseNamespace' => $this->baseNamespace,
-            ])
-            : resolve(Schema::class, [
-                'name' => $this->nameInput,
-                'baseNamespace' => $this->baseNamespace,
-            ]);
+        get => $this->reference ??= resolve(Schema::class, [
+            'name' => $this->nameInput,
+            'baseNamespace' => $this->baseNamespace,
+        ]);
     }
 
     public function handle(): bool
     {
         $this->resolveNamespace();
 
-        if ($this->isCollection()) {
-            $this->generateSchemaCollection();
-        } else {
-            $this->generateSchema();
-            $this->generateSchemaCollection();
+        if (! $this->resolveVersion()) {
+            return false;
         }
 
-        return (bool) Command::SUCCESS;
-    }
+        if (! $this->baseNamespace->endsWith($this->version->name)) {
+            $this->baseNamespace = $this->baseNamespace->append('\\', $this->version->name);
+        }
 
-    protected function isCollection(): bool
-    {
-        return $this->option('collection') || $this->nameInput->endsWith('Collection');
+        $this->generateSchema();
+        $this->generateSchemaCollection();
+
+        return (bool) Command::SUCCESS;
     }
 
     protected function generateSchema(): void
@@ -91,6 +87,12 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
         $event = tap(new BuildingSchema($name), event(...));
 
         $stub = $stub->replace('{{ collection }}', $this->reference->collection->name->value());
+        $stub = $stub->replace('{{ versionImport }}', $this->version::class);
+        $stub = $stub->replace('{{ version }}', class_basename($this->version::class).'::'.$this->version->name);
+        $stub = $stub->replace(
+            'use AsSchema;',
+            '/** @use AsSchema<'.class_basename($this->version::class).'> */'."\n    use AsSchema;"
+        );
         $stub = $this->replaceImports($stub, $event->imports);
         $stub = $this->replaceProperties($stub, $event->properties);
 
@@ -140,8 +142,8 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
     protected function getOptions(): array
     {
         return [
-            new InputOption('collection', 'c', InputOption::VALUE_NONE, 'Create a resource collection'),
             new InputOption('force', 'f', InputOption::VALUE_NONE, 'Create the class even if it already exists'),
+            ...$this->getSchemaVersionInputOptions(),
             ...$this->getNamespaceInputOptions(),
         ];
     }

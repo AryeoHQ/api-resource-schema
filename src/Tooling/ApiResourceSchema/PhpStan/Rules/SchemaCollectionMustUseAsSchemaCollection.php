@@ -20,16 +20,15 @@ class SchemaCollectionMustUseAsSchemaCollection extends Rule
 {
     public function shouldHandle(Node $node, Scope $scope): bool
     {
-        return $this->inherits($node, SchemaCollection::class)
-            && $this->doesNotInherit($node, AsSchemaCollection::class);
+        return $this->inherits($node, SchemaCollection::class) && $this->doesNotInherit($node, AsSchemaCollection::class);
     }
 
     public function handle(Node $node, Scope $scope): void
     {
         $this->error(
-            '[SchemaCollection] must use the [AsSchemaCollection] trait.',
-            $node->name->getStartLine(),
-            'apiResourceSchema.schemaCollectionMustUseAsSchemaCollection'
+            '['.class_basename(SchemaCollection::class).'] must use the ['.class_basename(AsSchemaCollection::class).'] trait.',
+            $node->name?->getStartLine() ?? $node->getStartLine(),
+            'SchemaCollection.AsSchemaCollection.required'
         );
     }
 }

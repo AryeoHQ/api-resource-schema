@@ -43,6 +43,31 @@ class PropertyTest extends TestCase
     }
 
     #[Test]
+    public function it_can_check_if_property_is_hidden(): void
+    {
+        $property = Property::make(
+            new ReflectionProperty(Teams\Schemas\Team::class, 'schemaVersion')
+        );
+
+        $this->assertTrue($property->isHidden);
+    }
+
+    #[Test]
+    public function it_can_check_if_property_is_static(): void
+    {
+        $class = new class
+        {
+            public static string $flag = 'yes';
+        };
+
+        $property = Property::make(
+            new ReflectionProperty($class::class, 'flag')
+        );
+
+        $this->assertTrue($property->isStatic);
+    }
+
+    #[Test]
     public function it_can_check_if_property_is_on_class(): void
     {
         $property = Property::make(

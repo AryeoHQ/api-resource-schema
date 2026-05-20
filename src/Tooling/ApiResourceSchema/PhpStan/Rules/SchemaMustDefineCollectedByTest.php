@@ -7,6 +7,8 @@ namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
+use Support\Http\Resources\Schemas\Contracts\Schema;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -32,7 +34,7 @@ class SchemaMustDefineCollectedByTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Schemas/MissingCollectedBy.php')], [
             [
-                '[Schema] must have the [CollectedBy] attribute.',
+                '['.class_basename(Schema::class).'] must have the ['.class_basename(CollectedBy::class).'] attribute.',
                 11,
             ],
         ]);

@@ -28,9 +28,9 @@ class AsSchemaCanOnlyBeAddedToSchema extends Rule
     public function handle(Node $node, Scope $scope): void
     {
         $this->error(
-            '[AsSchema] trait can only be used on implementations of [Schema].',
+            '['.class_basename(AsSchema::class).'] trait can only be used on implementations of ['.class_basename(Schema::class).'].',
             $this->findAsSchemaTrait($node)->getStartLine(),
-            'apiResourceSchema.asSchemaOnlyOnSchema'
+            'AsSchema.Schema.only'
         );
     }
 

@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Fields\Exceptions;
 
+use Illuminate\Support\Stringable;
 use LogicException;
 use Support\Http\Resources\Schemas\Contracts\Schema;
-use Throwable;
 
 class MergeUnlessNotSupported extends LogicException
 {
-    public function __construct(string $message = '', int $code = 0, null|Throwable $previous = null)
-    {
-        $message = with(Schema::class, fn (string $class) => "`mergeUnless()` is not supported in [$class] resources.");
+    private Stringable $template { get => str('`mergeUnless()` is not supported in [%s] resources.'); }
 
-        parent::__construct($message, $code, $previous);
+    public function __construct()
+    {
+        parent::__construct(
+            $this->template->replaceArray('%s', [Schema::class])->toString()
+        );
     }
 }
