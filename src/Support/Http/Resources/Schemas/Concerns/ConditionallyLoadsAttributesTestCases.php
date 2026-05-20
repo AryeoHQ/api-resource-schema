@@ -7,6 +7,7 @@ namespace Support\Http\Resources\Schemas\Concerns;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeUnlessNotSupported;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeWhenNotSupported;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Teams\Team;
 use Tests\Fixtures\Support\TeamUser\TeamUser;
 use Tests\Fixtures\Support\Users\User;
@@ -20,35 +21,35 @@ trait ConditionallyLoadsAttributesTestCases
     #[Test]
     public function when_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('username', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('username', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_includes(): void
     {
         request()->merge(['with_email' => true]);
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('email', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('email', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function unless_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('username', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('username', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function unless_includes(): void
     {
         request()->merge(['with_username' => true]);
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('username', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('username', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
@@ -56,7 +57,7 @@ trait ConditionallyLoadsAttributesTestCases
     {
         $this->expectException(MergeWhenNotSupported::class);
 
-        Team::factory()->create()->toResource()->toArray(request());
+        Team::factory()->create()->toSchema(ApiVersion::V2)->toArray(request());
     }
 
     #[Test]
@@ -64,166 +65,166 @@ trait ConditionallyLoadsAttributesTestCases
     {
         $this->expectException(MergeUnlessNotSupported::class);
 
-        TeamUser::factory()->create()->toResource()->toArray(request());
+        TeamUser::factory()->create()->toSchema(ApiVersion::V2)->toArray(request());
     }
 
     #[Test]
     public function when_has_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('biography', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('biography', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_has_includes(): void
     {
-        $resource = User::factory()->biography()->create()->toResource();
+        $schema = User::factory()->biography()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('biography', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('biography', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_null_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('middle_initial', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('middle_initial', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_null_includes(): void
     {
-        $resource = User::factory()->withoutMiddleName()->create()->toResource();
+        $schema = User::factory()->withoutMiddleName()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('middle_initial', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('middle_initial', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_not_null_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('deleted_at', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('deleted_at', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_not_null_includes(): void
     {
-        $resource = User::factory()->deleted()->create()->toResource();
+        $schema = User::factory()->deleted()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('deleted_at', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('deleted_at', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_appended_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('full_name', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('full_name', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_appended_includes(): void
     {
-        $resource = User::factory()->create()->append('full_name')->toResource();
+        $schema = User::factory()->create()->append('full_name')->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('full_name', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('full_name', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_loaded_discards(): void
     {
-        $resource = User::factory()->hasPosts()->create()->toResource();
+        $schema = User::factory()->hasPosts()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('posts', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('posts', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_loaded_includes(): void
     {
-        $resource = User::factory()->hasPosts()->create()->toResource()->load('posts');
+        $schema = User::factory()->hasPosts()->create()->toSchema(ApiVersion::V2)->load('posts');
 
-        $this->assertArrayHasKey('posts', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('posts', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_counted_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('posts_count', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('posts_count', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_counted_includes(): void
     {
-        $resource = User::factory()->hasPosts()->create()->toResource()->loadCount('posts');
+        $schema = User::factory()->hasPosts()->create()->toSchema(ApiVersion::V2)->loadCount('posts');
 
-        $this->assertArrayHasKey('posts_count', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('posts_count', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_aggregated_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('rating', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('rating', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_aggregated_includes(): void
     {
-        $resource = User::factory()->hasPosts()->create()->loadAggregate('posts', 'rating', 'avg')->toResource();
+        $schema = User::factory()->hasPosts()->create()->loadAggregate('posts', 'rating', 'avg')->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('rating', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('rating', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_exists_loaded_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('has_posts', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('has_posts', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_exists_loaded_includes(): void
     {
-        $resource = User::factory()->hasPosts()->create()->loadExists('posts')->toResource();
+        $schema = User::factory()->hasPosts()->create()->loadExists('posts')->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('has_posts', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('has_posts', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_pivot_loaded_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('pivot', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('pivot', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function when_pivot_loaded_includes(): void
     {
-        $resource = Team::factory()->hasUsers()->create()->users->first()->toResource();
+        $schema = Team::factory()->hasUsers()->create()->users->first()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('team_membership_id', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('team_membership_id', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function transforms_discards(): void
     {
-        $resource = User::factory()->create()->toResource();
+        $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('age', (array) json_decode($resource->toJson()));
+        $this->assertArrayNotHasKey('age', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
     public function transforms_includes(): void
     {
-        $resource = User::factory()->birthday()->create()->toResource();
+        $schema = User::factory()->birthday()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayHasKey('age', (array) json_decode($resource->toJson()));
+        $this->assertArrayHasKey('age', (array) json_decode($schema->toJson()));
     }
 }

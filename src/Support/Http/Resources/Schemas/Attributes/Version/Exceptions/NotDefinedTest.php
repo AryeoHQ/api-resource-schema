@@ -1,0 +1,26 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Support\Http\Resources\Schemas\Attributes\Version\Exceptions;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Attributes\Version\Version;
+use Tests\TestCase;
+
+#[CoversClass(NotDefined::class)]
+class NotDefinedTest extends TestCase
+{
+    #[Test]
+    public function it_formats_the_message(): void
+    {
+        $class = 'App\\Schemas\\User';
+        $exception = new NotDefined($class);
+
+        $this->assertSame(
+            "The [$class] class must define #[".Version::class.'].',
+            $exception->getMessage()
+        );
+    }
+}

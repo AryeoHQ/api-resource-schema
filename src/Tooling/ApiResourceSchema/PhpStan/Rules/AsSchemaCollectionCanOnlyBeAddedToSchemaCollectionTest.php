@@ -7,6 +7,8 @@ namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Contracts\SchemaCollection;
+use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -32,7 +34,7 @@ class AsSchemaCollectionCanOnlyBeAddedToSchemaCollectionTest extends RuleTestCas
     {
         $this->analyse([$this->getFixturePath('PhpStan/SchemaCollections/AsSchemaCollectionOnly.php')], [
             [
-                '[AsSchemaCollection] trait can only be used on implementations of [SchemaCollection].',
+                '['.class_basename(AsSchemaCollection::class).'] trait can only be used on implementations of ['.class_basename(SchemaCollection::class).'].',
                 12,
             ],
         ]);

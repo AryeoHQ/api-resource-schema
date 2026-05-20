@@ -4,20 +4,28 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Provides;
 
-use ReflectionObject;
-use Support\Http\Resources\Schemas\Attributes\Collects;
-use Support\Http\Resources\Schemas\Attributes\Exceptions\CollectsNotDefined;
+use Support\Http\Resources\Schemas\Attributes;
+use Support\Http\Resources\Schemas\Attributes\Collects\Collects;
+use Support\Http\Resources\Schemas\Contracts\Version;
 
 trait AsSchemaCollection
 {
-    protected function collects(): null|string
-    {
-        $this->collects ??= throw_unless( // @phpstan-ignore-line
-            data_get(new ReflectionObject($this)->getAttributes(Collects::class), 0)?->newInstance()->schema,
-            CollectsNotDefined::class,
-            $this
-        );
+    public Version $schemaVersion;
 
-        return $this->collects;
+    public function __construct($resource)
+    {
+        parent::__construct($resource);
+
+        $this->schemaVersion = $this->schemaVersion();
+    }
+
+    protected function schemaVersion(): Version
+    {
+        return Attributes\Version\Version::resolve($this->collects);
+    }
+
+    protected function collects(): string
+    {
+        return $this->collects = Collects::resolve(static::class); // @phpstan-ignore assign.propertyType
     }
 }

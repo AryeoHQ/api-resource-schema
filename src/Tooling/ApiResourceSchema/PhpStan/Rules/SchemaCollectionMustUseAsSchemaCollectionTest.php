@@ -7,6 +7,8 @@ namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Contracts\SchemaCollection;
+use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -32,7 +34,7 @@ class SchemaCollectionMustUseAsSchemaCollectionTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/SchemaCollections/MissingAsSchemaCollection.php')], [
             [
-                '[SchemaCollection] must use the [AsSchemaCollection] trait.',
+                '['.class_basename(SchemaCollection::class).'] must use the ['.class_basename(AsSchemaCollection::class).'] trait.',
                 10,
             ],
         ]);

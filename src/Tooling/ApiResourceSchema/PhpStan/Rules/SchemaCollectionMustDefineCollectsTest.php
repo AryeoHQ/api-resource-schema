@@ -7,6 +7,8 @@ namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Attributes\Collects\Collects;
+use Support\Http\Resources\Schemas\Contracts\SchemaCollection;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -32,7 +34,7 @@ class SchemaCollectionMustDefineCollectsTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/SchemaCollections/MissingCollects.php')], [
             [
-                '[SchemaCollection] must have the [Collects] attribute.',
+                '['.class_basename(SchemaCollection::class).'] must have the ['.class_basename(Collects::class).'] attribute.',
                 11,
             ],
         ]);

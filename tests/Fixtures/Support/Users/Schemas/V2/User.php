@@ -2,20 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Tests\Fixtures\Support\Users\Schemas;
+namespace Tests\Fixtures\Support\Users\Schemas\V2;
 
 use Carbon\Carbon;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Support\Http\Resources\Schemas;
-use Support\Http\Resources\Schemas\Attributes\CollectedBy;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
+use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Tests\Fixtures\Support\Posts\Schemas\Posts;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
+use Tests\Fixtures\Support\Users\Collection\Schemas\V2\Users;
 
 #[CollectedBy(Users::class)]
+#[Version(ApiVersion::V2)]
 class User extends JsonResource implements Schemas\Contracts\Schema
 {
+    /** @use AsSchema<ApiVersion> */
     use AsSchema;
 
     public string $firstName { get => $this->resource->first_name; }

@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Support\Users;
 
+use Illuminate\Database\Eloquent\Attributes\CollectedBy;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
-use Illuminate\Database\Eloquent\Attributes\UseResource;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
+use Support\Http\Resources\Schemas\Concerns\TransformsToSchema;
+use Support\Http\Resources\Schemas\Contracts\Schemable;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Teams\Team;
 use Tests\Fixtures\Support\TeamUser\TeamUser;
@@ -23,14 +26,17 @@ use Tests\Fixtures\Support\TeamUser\TeamUser;
  * @property string $last_name
  * @property string $full_name
  */
+#[CollectedBy(Collection\Users::class)]
 #[UseFactory(Factory::class)]
-#[UseResource(Schemas\User::class)]
-class User extends Model
+#[UseSchema(Schemas\V1\User::class)]
+#[UseSchema(Schemas\V2\User::class)]
+class User extends Model implements Schemable
 {
     /** @use HasFactory<Factory>  */
     use HasFactory;
 
     use SoftDeletes;
+    use TransformsToSchema;
 
     protected $hidden = ['biography'];
 

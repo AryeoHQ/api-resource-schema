@@ -7,7 +7,7 @@ namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\Class_;
 use PHPStan\Analyser\Scope;
-use Support\Http\Resources\Schemas\Attributes\CollectedBy;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
 use Support\Http\Resources\Schemas\Contracts\Schema;
 use Tooling\PhpStan\Rules\Rule;
 use Tooling\Rules\Attributes\NodeType;
@@ -27,9 +27,9 @@ class SchemaMustDefineCollectedBy extends Rule
     public function handle(Node $node, Scope $scope): void
     {
         $this->error(
-            '[Schema] must have the [CollectedBy] attribute.',
-            $node->name->getStartLine(),
-            'apiResourceSchema.schemaMustDefineCollectedBy'
+            '['.class_basename(Schema::class).'] must have the ['.class_basename(CollectedBy::class).'] attribute.',
+            $node->name?->getStartLine() ?? $node->getStartLine(),
+            'Schema.CollectedBy.required'
         );
     }
 }

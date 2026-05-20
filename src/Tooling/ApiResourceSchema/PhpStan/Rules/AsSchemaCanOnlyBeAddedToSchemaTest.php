@@ -7,6 +7,8 @@ namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Contracts\Schema;
+use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -32,7 +34,7 @@ class AsSchemaCanOnlyBeAddedToSchemaTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Schemas/AsSchemaOnly.php')], [
             [
-                '[AsSchema] trait can only be used on implementations of [Schema].',
+                '['.class_basename(AsSchema::class).'] trait can only be used on implementations of ['.class_basename(Schema::class).'].',
                 12,
             ],
         ]);
