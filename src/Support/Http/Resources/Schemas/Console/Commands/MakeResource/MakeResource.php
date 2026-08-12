@@ -45,7 +45,7 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
             return false;
         }
 
-        if (! $this->baseNamespace->endsWith($this->version->name)) {
+        if (! $this->baseNamespace->explode('\\')->contains($this->version->name)) {
             $this->baseNamespace = $this->baseNamespace->append('\\', $this->version->name);
         }
 

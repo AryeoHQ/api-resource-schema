@@ -34,6 +34,10 @@ final class MakeResourceTest extends TestCase
         get => new References\Schema(name: 'Post', baseNamespace: 'App\\Nested\\Deeper\\V1');
     }
 
+    private References\Schema $versionMidNamespaceReference {
+        get => new References\Schema(name: 'Post', baseNamespace: 'App\\V1\\Users');
+    }
+
     private References\SchemaCollection $collectionReference {
         get => new References\SchemaCollection(name: 'Posts', baseNamespace: 'App\\V1');
     }
@@ -153,6 +157,20 @@ final class MakeResourceTest extends TestCase
         ]);
 
         $this->assertTrue(File::exists($this->expectedFilePath), 'The schema was not created');
+    }
+
+    #[Test]
+    public function it_does_not_duplicate_version_when_version_appears_mid_namespace(): void
+    {
+        Composer::fake();
+
+        $this->artisan($this->command, [
+            'name' => 'Post',
+            '--namespace' => 'App\\V1\\Users',
+            '--schema-version' => 'V1',
+        ]);
+
+        $this->assertTrue(File::exists($this->versionMidNamespaceReference->filePath->toString()), 'The schema was not created');
     }
 
     #[Test]
