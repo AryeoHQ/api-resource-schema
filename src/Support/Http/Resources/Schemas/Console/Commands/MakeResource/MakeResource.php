@@ -26,6 +26,15 @@ class MakeResource extends ResourceMakeCommand implements GeneratesFile
     use ResolvesSchemaVersion;
     use RetrievesNamespace;
 
+    /**
+     * Laravel 13's parent signature would skip getArguments() and getOptions(), and that
+     * version has no $name. Clear the signature and set the name so both versions register
+     * make:resource from these methods.
+     */
+    protected $name = 'make:resource';
+
+    protected $signature;
+
     public Stringable $nameInput {
         get => $this->nameInput ??= str($this->argument('name'))->singular()->beforeLast('Collection');
     }

@@ -9,19 +9,19 @@
     },
     "require": {
         "php": "^8.4",
-        "laravel/framework": "^12.37",
-        "symfony/console": "^7.0",
+        "laravel/framework": "^12.37 || ^13",
+        "symfony/console": "^7.0 || ^8.0",
         "phpstan/phpstan": "^2.1",
         "nikic/php-parser": "^5.7",
-        "aryeo/tooling-laravel": "0.0.39",
+        "aryeo/tooling-laravel": "0.0.40",
         "laravel/prompts": "^0.3.17"
     },
     "require-dev": {
-        "orchestra/testbench": "^10.6",
+        "orchestra/testbench": "^10.6 || ^11",
         "brianium/paratest": "^7.14",
-        "phpunit/phpunit": "^12.4.1",
+        "phpunit/phpunit": "^12.4.1 || ^13",
         "pestphp/pest": "^4.1",
-        "orchestra/testbench-core": "^10.7",
+        "orchestra/testbench-core": "^10.7 || ^11",
         "nesbot/carbon": "^3.10"
     },
     "autoload": {
