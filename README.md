@@ -3,7 +3,7 @@
 A light, typed layer on top of Laravel API Resources that lets you describe your JSON contract with native PHP accessor properties instead of large array structures.
 
 ## Benefits
-Laravel's Resources are powerful, but big `toArray()` methods grow messy and untyped. This package keeps the same familiar capabilities (include, whenLoaded, counts, aggregates, pivots, request flags) while giving you:
+Laravel's Resources are powerful, but big `toArray()` methods grow messy and untyped. This package keeps the same familiar capabilities (include, whenLoaded, counts, aggregates, pivots, request flags) while giving you the following. A field that depends on a loaded relation or on the caller must also declare how the schema's ETag covers it; see [ETags](#etags).
 
 - Strong typing per field (IDE + static analysis)
 - A simple sentinel type (`Discarded`) for conditional fields
@@ -74,7 +74,7 @@ class UserSchema extends JsonResource implements Schemas\Contracts\Schema
     public string $lastName { get => $this->resource->last_name; }
 
     public string|Discarded $email {
-        get => $this->when(request()->boolean('with_email'), fn () => $this->resource->email);
+        get => $this->whenRequested('with_email', fn () => $this->resource->email);
     }
 }
 ```
@@ -185,6 +185,92 @@ use Support\Http\Resources\Schemas\Attributes\Hidden\Hidden;
 public Version $schemaVersion;
 ```
 
+## ETags
+
+Every schema has a strong ETag. The tag is a hash of the schema rendered in tag mode, plus the contributions the schema declares:
+
+```php
+$user->toTag(ApiVersion::V2); // Tag, cast to string: "1b4f0e9851971998e732078544c96b36"
+```
+
+The hash covers the schema class, the version, the rendered fields as canonical JSON, and each contribution in declaration order. A nested schema adds its own class, version, and contributions where it appears. The tag changes when a rendered field or a contribution changes. It stays the same for two requests that differ only in a `whenRequested()` flag, or only in a field marked `#[Untagged]`.
+
+A tag reflects the full representation that the caller could request. It includes every flag-gated field, whether or not this request sets the flag. A `when()` condition that checks a permission evaluates for the current caller. Two callers with different permissions can therefore receive different tags for the same row.
+
+### Tag mode
+
+Tag mode renders each field as follows:
+
+| Field | In tag mode | What to declare |
+|---|---|---|
+| `whenRequested('with_email', ...)` | renders the value, whether or not the request sets the flag | nothing |
+| `when()` or `unless()` | evaluates the condition as written | nothing; a condition that reads the request fails analysis, so use `whenRequested()` |
+| `whenAppended()` | renders the value, whether or not the model appends it | nothing |
+| `whenLoaded()`, `whenCounted()`, `whenAggregated()`, `whenExistsLoaded()` | discarded | `#[ContributesTag(..., relation: 'posts')]`, naming the relation |
+| `whenPivotLoaded()`, `whenPivotLoadedAs()` | discarded | `#[ContributesTag(..., relation: 'team_user')]`, naming the pivot table |
+| `whenHas()` | discarded | `#[ContributesTag(..., relation: 'biography')]`, naming the attribute, or `#[Untagged]` |
+| A field that reads the caller or the request directly, such as `auth()` or `request()->user()` | omitted | `#[Untagged]` |
+| Every other field | renders as usual | nothing |
+
+Gate a field on a request flag with `whenRequested()`. A normal render shows the value only when `request()->boolean($flag)` is true. Use `when()` and `unless()` for model state and permissions. Tag mode evaluates them exactly as a normal render does, so a closure that needs its condition never runs when the condition is false.
+
+### Contributors
+
+A contributor returns a string for state that the render does not include, such as a relation's version or a child order. The container resolves it, and `#[ContributesTag]` is repeatable:
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Support\Http\Resources\Schemas\Attributes\ContributesTag\ContributesTag;
+use Support\Http\Resources\Schemas\Attributes\Untagged\Untagged;
+use Support\Http\Resources\Schemas\Tags\Contracts\Contributor;
+
+/** @implements Contributor<User> */
+class PostsVersion implements Contributor
+{
+    public function contribute(Model $resource): string
+    {
+        return (string) $resource->posts()->max('updated_at');
+    }
+}
+
+#[CollectedBy(UserSchemaCollection::class)]
+#[ContributesTag(PostsVersion::class, relation: 'posts')]
+#[Version(ApiVersion::V2)]
+class UserSchema extends JsonResource implements Schema
+{
+    use AsSchema;
+
+    public ResourceCollection|Discarded $posts {
+        get => $this->whenLoaded('posts', fn () => PostSchemaCollection::make($this->resource->posts));
+    }
+
+    #[Untagged]
+    public bool $canEdit { get => request()->user()?->can('update', $this->resource) ?? false; }
+}
+```
+
+The `relation` argument is optional. Omit it for state that no field loads, such as a child order.
+
+### Responses
+
+A single schema response sets `ETag` to the tag of the schema it renders. That tag also covers the response's `with()` and `additional()` data. A schema collection sets `ETag` only when you give it a tag, such as the tag of a collection's order:
+
+```php
+return $users->toSchemaCollection(ApiVersion::V2)->withETag($orderTag);
+```
+
+### If-Match
+
+`Tag::matches()` evaluates an `If-Match` value with strong comparison. It matches `*` and any listed strong tag. It never matches a weak `W/` tag or a malformed list. Join repeated `If-Match` lines into one list before you match:
+
+```php
+$user->toTag(ApiVersion::V2)->matches(implode(', ', $request->headers->all('if-match')));
+```
+
 ## Static Analysis
 
 This package ships PHPStan rules and Rector auto-fixes to enforce correct wiring at analysis time.
+
+The `ConditionalFieldMustBeCoveredByTag` rule fails a load-dependent field whose relation has no `#[ContributesTag]`, and a `whenHas()` field whose attribute has neither `#[ContributesTag]` nor `#[Untagged]`. It fails a `when()` or `unless()` whose condition reads the request. It also fails a field that reads `auth()`, `Auth::`, or `user()` on the request or an auth guard without `#[Untagged]`. Pass each relation as a string literal, so that the rule can match it.
+
+The `SchemaMustNotDefineWithResponse` rule fails a schema or schema collection that defines its own `withResponse()`, because the trait sets the ETag there.

@@ -8,6 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
 use Support\Http\Resources\Schemas\Attributes;
 use Support\Http\Resources\Schemas\Contracts;
+use Support\Http\Resources\Schemas\Tags;
 
 /**
  * @mixin Contracts\Schemable
@@ -35,5 +36,10 @@ trait TransformsToSchema
         throw_unless($schema, Attributes\Version\Exceptions\NotFound::class, $version, static::class);
 
         return $schema::make($this);
+    }
+
+    public function toTag(Contracts\Version $version): Tags\Tag
+    {
+        return app(Tags\Tagger::class)->tag($this->toSchema($version));
     }
 }
