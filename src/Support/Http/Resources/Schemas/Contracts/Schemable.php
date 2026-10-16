@@ -6,6 +6,7 @@ namespace Support\Http\Resources\Schemas\Contracts;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
+use Support\Http\Resources\Schemas\Tags\Tag;
 
 interface Schemable
 {
@@ -16,4 +17,6 @@ interface Schemable
     public Collection $schemaVersions { get; }
 
     public function toSchema(Version $version): Schema&JsonResource;
+
+    public function toTag(Version $version): Tag;
 }

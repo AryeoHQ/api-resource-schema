@@ -10,9 +10,11 @@ use Support\Http\Resources\Schemas\Fields\Exceptions\MergeWhenNotSupported;
 
 trait ConditionallyLoadsAttributes
 {
+    protected bool $tagging = false;
+
     protected function when($condition, $value, $default = new Discarded)
     {
-        return parent::when($condition, $value, $default);
+        return parent::when($this->tagging || $condition, $value, $default);
     }
 
     public function unless($condition, $value, $default = new Discarded)
@@ -37,12 +39,12 @@ trait ConditionallyLoadsAttributes
 
     protected function whenNull($value, $default = new Discarded)
     {
-        return parent::whenNull($value, $default);
+        return parent::when(is_null($value), $value, $default);
     }
 
     protected function whenNotNull($value, $default = new Discarded)
     {
-        return parent::whenNotNull($value, $default);
+        return parent::when(! is_null($value), $value, $default);
     }
 
     protected function whenAppended($attribute, $value = null, $default = new Discarded)
@@ -52,32 +54,50 @@ trait ConditionallyLoadsAttributes
 
     protected function whenLoaded($relationship, $value = null, $default = new Discarded)
     {
-        return parent::whenLoaded($relationship, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenLoaded($relationship, $value, $default),
+        };
     }
 
     public function whenCounted($relationship, $value = null, $default = new Discarded)
     {
-        return parent::whenCounted($relationship, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenCounted($relationship, $value, $default),
+        };
     }
 
     public function whenAggregated($relationship, $column, $aggregate, $value = null, $default = new Discarded)
     {
-        return parent::whenAggregated($relationship, $column, $aggregate, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenAggregated($relationship, $column, $aggregate, $value, $default),
+        };
     }
 
     public function whenExistsLoaded($relationship, $value = null, $default = new Discarded)
     {
-        return parent::whenExistsLoaded($relationship, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenExistsLoaded($relationship, $value, $default),
+        };
     }
 
     protected function whenPivotLoaded($table, $value, $default = new Discarded)
     {
-        return parent::whenPivotLoaded($table, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenPivotLoaded($table, $value, $default),
+        };
     }
 
     protected function whenPivotLoadedAs($accessor, $table, $value, $default = new Discarded)
     {
-        return parent::whenPivotLoadedAs($accessor, $table, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenPivotLoadedAs($accessor, $table, $value, $default),
+        };
     }
 
     protected function transform($value, callable $callback, $default = new Discarded)

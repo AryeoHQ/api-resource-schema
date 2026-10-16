@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Provides;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use ReflectionObject;
@@ -11,6 +12,7 @@ use Support\Http\Resources\Schemas\Attributes;
 use Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributes;
 use Support\Http\Resources\Schemas\Contracts;
 use Support\Http\Resources\Schemas\Reflection\Property;
+use Support\Http\Resources\Schemas\Tags;
 
 /**
  * @template TVersion of Contracts\Version
@@ -60,9 +62,20 @@ trait AsSchema
      */
     public function toArray(Request $request): array
     {
-        return $this->fields->mapWithKeys(
+        $this->tagging = Tags\Tagger::tagging($request);
+
+        return $this->fields->reject(
+            fn (Property $property): bool => $this->tagging && $property->getAttributes(Attributes\Untagged\Untagged::class) !== []
+        )->mapWithKeys(
             fn (Property $property) => [$property->name->snake()->toString() => $this->{$property->name}]
         )->toArray();
+    }
+
+    public function withResponse(Request $request, JsonResponse $response): void
+    {
+        if ($this->resource instanceof Contracts\Schemable) {
+            $response->setEtag((string) $this->resource->toTag($this->schemaVersion));
+        }
     }
 
     protected static function newCollection($resource)

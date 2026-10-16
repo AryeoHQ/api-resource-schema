@@ -110,4 +110,20 @@ class SchemaTest extends TestCase
 
         User::factory()->create()->toSchema(ApiVersion::V3);
     }
+
+    #[Test]
+    public function to_tag_returns_a_strong_tag(): void
+    {
+        $tag = User::factory()->create()->toTag(ApiVersion::V2);
+
+        $this->assertMatchesRegularExpression('/^"[0-9a-f]{32}"$/', (string) $tag);
+    }
+
+    #[Test]
+    public function to_tag_throws_for_unavailable_version(): void
+    {
+        $this->expectException(NotFound::class);
+
+        User::factory()->create()->toTag(ApiVersion::V3);
+    }
 }

@@ -6,14 +6,17 @@ namespace Tests\Fixtures\Support\Posts\Schemas;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
+use Support\Http\Resources\Schemas\Attributes\ContributesTag\ContributesTag;
 use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Contracts\Schema;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
+use Tests\Fixtures\Support\Tags\Contributors\Author;
 use Tests\Fixtures\Support\Users;
 
 #[CollectedBy(Posts::class)]
+#[ContributesTag(Author::class, relation: 'user')]
 #[Version(ApiVersion::V2)]
 class Post extends JsonResource implements Schema
 {
