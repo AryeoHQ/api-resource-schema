@@ -19,6 +19,7 @@ use Tests\Fixtures\Support\Tags\Contributors;
 use Tests\Fixtures\Support\Users\Collection\Schemas\V2\Users;
 
 #[CollectedBy(Users::class)]
+#[ContributesTag(Contributors\Biography::class, relation: 'biography')]
 #[ContributesTag(Contributors\Posts::class, relation: 'posts')]
 #[ContributesTag(Contributors\Teams::class, relation: 'team_user')]
 #[Version(ApiVersion::V2)]
@@ -33,11 +34,9 @@ class User extends JsonResource implements Schemas\Contracts\Schema
 
     public string $lastName { get => $this->resource->last_name; }
 
-    public string|Discarded $email { get => $this->when(request()->with_email, fn () => $this->resource->email); } // @phpstan-ignore property.notFound
+    public string|Discarded $email { get => $this->whenRequested('with_email', fn () => $this->resource->email); }
 
-    public string|Discarded $username {
-        get => $this->unless(! request()->has('with_username'), fn () => $this->resource->username);
-    }
+    public string|Discarded $username { get => $this->whenRequested('with_username', fn () => $this->resource->username); }
 
     public string|Discarded|null $biography { get => $this->whenHas('biography', fn () => $this->resource->biography); }
 

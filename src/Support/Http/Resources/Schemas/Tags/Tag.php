@@ -14,14 +14,14 @@ final class Tag implements Stringable
 
     private const string ELEMENT = '(W\/)?('.self::OPAQUE.')';
 
-    private const string LIST = '/^[ \t]*(?:'.self::ELEMENT.')?(?:[ \t]*,[ \t]*(?:'.self::ELEMENT.')?)*[ \t]*$/';
+    private const string LIST = '/\A[ \t]*(?:'.self::ELEMENT.')?(?:[ \t]*,[ \t]*(?:'.self::ELEMENT.')?)*[ \t]*\z/';
 
     public readonly string $value;
 
     public function __construct(string $value)
     {
         throw_unless(
-            preg_match('/^'.self::OPAQUE.'$/', $value) === 1,
+            preg_match('/\A'.self::OPAQUE.'\z/', $value) === 1,
             InvalidArgumentException::class,
             "[{$value}] is not a strong entity tag."
         );

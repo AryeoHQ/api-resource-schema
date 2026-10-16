@@ -73,9 +73,7 @@ trait AsSchema
 
     public function withResponse(Request $request, JsonResponse $response): void
     {
-        if ($this->resource instanceof Contracts\Schemable) {
-            $response->setEtag((string) $this->resource->toTag($this->schemaVersion));
-        }
+        $response->setEtag((string) app(Tags\Tagger::class)->tag($this));
     }
 
     protected static function newCollection($resource)

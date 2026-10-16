@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Tooling\PhpStan\Tags;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
 use Support\Http\Resources\Schemas\Attributes\Version\Version;
@@ -21,4 +22,6 @@ class MissingUntagged extends JsonResource implements Schema
     public mixed $viewerId { get => Auth::id(); }
 
     public mixed $owner { get => request()->user(); }
+
+    public mixed $requester { get => app(Request::class)->user(); }
 }

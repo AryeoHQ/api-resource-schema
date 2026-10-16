@@ -111,4 +111,18 @@ class TagTest extends TestCase
     {
         $this->assertFalse((new Tag('"abc"'))->matches('*, "x"'));
     }
+
+    #[Test]
+    public function it_rejects_a_tag_with_a_trailing_line_feed(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new Tag("\"abc\"\n");
+    }
+
+    #[Test]
+    public function it_does_not_match_a_list_with_a_trailing_line_feed(): void
+    {
+        $this->assertFalse((new Tag('"abc"'))->matches("\"abc\"\n"));
+    }
 }

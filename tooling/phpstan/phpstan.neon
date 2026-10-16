@@ -78,3 +78,7 @@ services:
         class: Tooling\ApiResourceSchema\PhpStan\Rules\ConditionalFieldMustBeCoveredByTag
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustNotDefineWithResponse
+        tags:
+            - phpstan.rules.rule

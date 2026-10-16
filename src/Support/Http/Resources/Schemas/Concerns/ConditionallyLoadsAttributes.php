@@ -14,7 +14,15 @@ trait ConditionallyLoadsAttributes
 
     protected function when($condition, $value, $default = new Discarded)
     {
-        return parent::when($this->tagging || $condition, $value, $default);
+        return parent::when($condition, $value, $default);
+    }
+
+    protected function whenRequested(string $flag, mixed $value, mixed $default = new Discarded): mixed
+    {
+        return match ($this->tagging || request()->boolean($flag)) {
+            true => value($value),
+            false => value($default),
+        };
     }
 
     public function unless($condition, $value, $default = new Discarded)
@@ -34,7 +42,10 @@ trait ConditionallyLoadsAttributes
 
     public function whenHas($attribute, $value = null, $default = new Discarded)
     {
-        return parent::whenHas($attribute, $value, $default);
+        return match ($this->tagging) {
+            true => new Discarded,
+            false => parent::whenHas($attribute, $value, $default),
+        };
     }
 
     protected function whenNull($value, $default = new Discarded)
@@ -49,7 +60,10 @@ trait ConditionallyLoadsAttributes
 
     protected function whenAppended($attribute, $value = null, $default = new Discarded)
     {
-        return parent::whenAppended($attribute, $value, $default);
+        return match ($this->tagging) {
+            true => func_num_args() >= 2 ? value($value) : $this->resource->{$attribute},
+            false => parent::whenAppended($attribute, $value, $default),
+        };
     }
 
     protected function whenLoaded($relationship, $value = null, $default = new Discarded)

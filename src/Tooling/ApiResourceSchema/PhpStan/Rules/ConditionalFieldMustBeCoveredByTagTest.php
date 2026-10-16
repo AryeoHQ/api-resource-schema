@@ -46,6 +46,33 @@ class ConditionalFieldMustBeCoveredByTagTest extends RuleTestCase
                 '['.class_basename(Schema::class).'] field [rating] calls [whenAggregated] with a non-literal relation, which no ['.class_basename(ContributesTag::class).'] attribute can cover.',
                 27,
             ],
+            [
+                '['.class_basename(Schema::class).'] field [nickname] calls [whenHas] for attribute [nickname] and needs a ['.class_basename(ContributesTag::class).'] attribute for it, or the ['.class_basename(Untagged::class).'] attribute.',
+                29,
+            ],
+            [
+                '['.class_basename(Schema::class).'] field [alias] calls [whenHas] with a non-literal attribute, which no ['.class_basename(ContributesTag::class).'] attribute can cover.',
+                31,
+            ],
+        ]);
+    }
+
+    #[Test]
+    public function it_fails_when_a_condition_reads_the_request(): void
+    {
+        $this->analyse([$this->getFixturePath('PhpStan/Tags/RequestGatedCondition.php')], [
+            [
+                '['.class_basename(Schema::class).'] field [email] gates [when] on the request and should use [whenRequested] instead.',
+                20,
+            ],
+            [
+                '['.class_basename(Schema::class).'] field [username] gates [unless] on the request and should use [whenRequested] instead.',
+                22,
+            ],
+            [
+                '['.class_basename(Schema::class).'] field [phone] gates [when] on the request and should use [whenRequested] instead.',
+                24,
+            ],
         ]);
     }
 
@@ -55,15 +82,19 @@ class ConditionalFieldMustBeCoveredByTagTest extends RuleTestCase
         $this->analyse([$this->getFixturePath('PhpStan/Tags/MissingUntagged.php')], [
             [
                 '['.class_basename(Schema::class).'] field [canEdit] reads the authenticated user and needs the ['.class_basename(Untagged::class).'] attribute.',
-                19,
+                20,
             ],
             [
                 '['.class_basename(Schema::class).'] field [viewerId] reads the authenticated user and needs the ['.class_basename(Untagged::class).'] attribute.',
-                21,
+                22,
             ],
             [
                 '['.class_basename(Schema::class).'] field [owner] reads the authenticated user and needs the ['.class_basename(Untagged::class).'] attribute.',
-                23,
+                24,
+            ],
+            [
+                '['.class_basename(Schema::class).'] field [requester] reads the authenticated user and needs the ['.class_basename(Untagged::class).'] attribute.',
+                26,
             ],
         ]);
     }

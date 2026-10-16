@@ -19,15 +19,15 @@ use Tests\TestCase;
 trait ConditionallyLoadsAttributesTestCases
 {
     #[Test]
-    public function when_discards(): void
+    public function when_requested_discards(): void
     {
         $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
-        $this->assertArrayNotHasKey('username', (array) json_decode($schema->toJson()));
+        $this->assertArrayNotHasKey('email', (array) json_decode($schema->toJson()));
     }
 
     #[Test]
-    public function when_includes(): void
+    public function when_requested_includes(): void
     {
         request()->merge(['with_email' => true]);
         $schema = User::factory()->create()->toSchema(ApiVersion::V2);
@@ -36,7 +36,7 @@ trait ConditionallyLoadsAttributesTestCases
     }
 
     #[Test]
-    public function unless_discards(): void
+    public function when_requested_discards_another_flag(): void
     {
         $schema = User::factory()->create()->toSchema(ApiVersion::V2);
 
@@ -44,7 +44,7 @@ trait ConditionallyLoadsAttributesTestCases
     }
 
     #[Test]
-    public function unless_includes(): void
+    public function when_requested_includes_another_flag(): void
     {
         request()->merge(['with_username' => true]);
         $schema = User::factory()->create()->toSchema(ApiVersion::V2);

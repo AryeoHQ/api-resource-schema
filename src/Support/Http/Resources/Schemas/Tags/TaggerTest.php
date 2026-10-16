@@ -13,7 +13,10 @@ use Support\Http\Resources\Schemas\Concerns\TransformsToSchema;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
+use Tests\Fixtures\Support\Tags\Schemas\Article;
+use Tests\Fixtures\Support\Tags\Schemas\Feed;
 use Tests\Fixtures\Support\Tags\Schemas\Member;
+use Tests\Fixtures\Support\Tags\Schemas\Writer;
 use Tests\Fixtures\Support\Teams\Team;
 use Tests\Fixtures\Support\Users\User;
 use Tests\TestCase;
@@ -70,11 +73,11 @@ class TaggerTest extends TestCase
     public function a_change_that_when_null_discards_keeps_the_tag(): void
     {
         $user = User::factory()->create(['middle_name' => 'John']);
-        $before = $user->toTag(ApiVersion::V2);
+        $before = app(Tagger::class)->tag(Member::make($user));
 
         $user->update(['middle_name' => 'Mark']);
 
-        $this->assertEquals($before, $user->toTag(ApiVersion::V2));
+        $this->assertEquals($before, app(Tagger::class)->tag(Member::make($user)));
     }
 
     #[Test]
@@ -146,5 +149,46 @@ class TaggerTest extends TestCase
         $user->toTag(ApiVersion::V2);
 
         $this->assertSame($body, $user->toSchema(ApiVersion::V2)->toJson());
+    }
+
+    #[Test]
+    public function loading_a_relation_inside_a_nested_collection_keeps_the_tag(): void
+    {
+        $user = User::factory()->hasPosts()->create();
+        $unloaded = app(Tagger::class)->tag(Feed::make(User::findOrFail($user->id)));
+
+        $this->assertEquals($unloaded, app(Tagger::class)->tag(Feed::make(User::findOrFail($user->id)->load('posts.user'))));
+    }
+
+    #[Test]
+    public function a_nested_schema_collection_contribution_change_gives_a_new_tag(): void
+    {
+        $user = User::factory()->hasPosts()->create();
+        $before = app(Tagger::class)->tag(Writer::make(User::findOrFail($user->id)));
+
+        $user->teams()->attach(Team::factory()->create());
+
+        $this->assertNotEquals($before, app(Tagger::class)->tag(Writer::make(User::findOrFail($user->id))));
+    }
+
+    #[Test]
+    public function an_integer_and_an_equal_float_give_the_same_tag(): void
+    {
+        $post = Post::factory()->create();
+
+        $integer = app(Tagger::class)->tag(Article::make($post->forceFill(['rating' => 10])));
+
+        $this->assertEquals($integer, app(Tagger::class)->tag(Article::make($post->forceFill(['rating' => 10.0]))));
+    }
+
+    #[Test]
+    public function a_change_to_a_when_has_attribute_gives_a_new_tag(): void
+    {
+        $user = User::factory()->biography()->create();
+        $before = app(Tagger::class)->tag(Member::make($user));
+
+        $user->update(['biography' => 'Changed.']);
+
+        $this->assertNotEquals($before, app(Tagger::class)->tag(Member::make($user)));
     }
 }

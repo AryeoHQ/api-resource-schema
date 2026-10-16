@@ -25,4 +25,8 @@ class MissingContribution extends JsonResource implements Schema
     public mixed $teamMembershipId { get => $this->whenPivotLoaded('team_user', fn () => $this->resource->pivot->id); }
 
     public mixed $rating { get => $this->whenAggregated(strtolower('Posts'), 'rating', 'avg'); }
+
+    public mixed $nickname { get => $this->whenHas('nickname'); }
+
+    public mixed $alias { get => $this->whenHas(strtolower('Alias')); }
 }
