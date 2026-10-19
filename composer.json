@@ -1,5 +1,7 @@
 {
     "name": "aryeo/api-resource-schema",
+    "description": "A typed layer over Laravel API Resources that describes the JSON contract with PHP accessor properties.",
+    "license": "MIT",
     "type": "library",
     "repositories": {
         "tooling-laravel": {
@@ -13,7 +15,7 @@
         "symfony/console": "^7.0 || ^8.0",
         "phpstan/phpstan": "^2.1",
         "nikic/php-parser": "^5.7",
-        "aryeo/tooling-laravel": "0.0.40",
+        "aryeo/tooling-laravel": "0.0.41",
         "laravel/prompts": "^0.3.17"
     },
     "require-dev": {
