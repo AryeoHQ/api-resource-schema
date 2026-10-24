@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Resources;
 
 use Illuminate\Pagination\AbstractPaginator;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
@@ -15,15 +16,20 @@ use Support\Http\Resources\Schemas\Attributes\Version\Exceptions\NotFound;
 use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Tests\Fixtures\Support\Posts\Post;
+use Tests\Fixtures\Support\Posts\Schemas\Posts;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
 use Tests\Fixtures\Support\Users\Collection\Users;
 use Tests\Fixtures\Support\Users\Schemas;
 use Tests\Fixtures\Support\Users\User;
+use Tests\Fixtures\Support\Users\UserRevision;
 use Tests\Fixtures\Tooling\PhpStan\SchemaCollections\MissingCollects;
 use Tests\TestCase;
 
 #[CoversClass(Collects::class)]
+#[CoversClass(EntityTag::class)]
 #[CoversClass(NotDefined::class)]
 #[CoversClass(NotFound::class)]
 #[CoversClass(UseSchemaCollection::class)]
@@ -126,5 +132,39 @@ class SchemaCollectionTest extends TestCase
         $this->expectException(NotFound::class);
 
         (new Users)->toSchemaCollection(ApiVersion::V3);
+    }
+
+    #[Test]
+    public function a_tagged_schema_collection_response_carries_its_tag(): void
+    {
+        $user = User::factory()->state(['concurrency_revision' => 17, 'posts_order_concurrency_revision' => 4])->create();
+        Post::factory()->count(2)->for($user)->create();
+        Route::get('posts', fn () => Posts::make($user->posts)->withTag(
+            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
+        ));
+
+        $this->get('posts')->assertOk()->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order=4"');
+    }
+
+    #[Test]
+    public function a_tagged_paginated_schema_collection_response_carries_its_tag_on_every_page(): void
+    {
+        $user = User::factory()->state(['posts_order_concurrency_revision' => 4])->create();
+        Post::factory()->count(2)->for($user)->create();
+        Route::get('posts', fn () => Posts::make($user->posts()->paginate(1))->withTag(
+            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
+        ));
+
+        $this->get('posts?page=1')->assertJsonPath('meta.current_page', 1)->assertHeader('ETag', '"v2.posts_order=4"');
+        $this->get('posts?page=2')->assertJsonPath('meta.current_page', 2)->assertHeader('ETag', '"v2.posts_order=4"');
+    }
+
+    #[Test]
+    public function an_untagged_schema_collection_response_carries_no_entity_tag(): void
+    {
+        User::factory()->count(2)->create();
+        Route::get('users', fn () => new Collection\Schemas\V2\Users(User::query()->get()));
+
+        $this->get('users')->assertOk()->assertJsonCount(2, 'data')->assertHeaderMissing('ETag');
     }
 }

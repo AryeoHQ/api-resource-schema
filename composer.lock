@@ -4,8 +4,102 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b7f7fca94a6bd5a297ef2d71fc470fa8",
+    "content-hash": "20ee86e8df21ecf04dcb8ea0ce8db82d",
     "packages": [
+        {
+            "name": "aryeo/eloquent-concurrency",
+            "version": "dev-feat/2026-10-24t1355-occ-versioning-m2",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
+                "reference": "bd021f25c4cbdb84215e13026352e322287a7e82"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/bd021f25c4cbdb84215e13026352e322287a7e82",
+                "reference": "bd021f25c4cbdb84215e13026352e322287a7e82",
+                "shasum": ""
+            },
+            "require": {
+                "aryeo/tooling-laravel": "0.0.41",
+                "laravel/framework": "^12.37 || ^13",
+                "php": "^8.4"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.6 || ^11",
+                "orchestra/testbench-core": "^10.7 || ^11",
+                "phpunit/phpunit": "^12.4.1 || ^13"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Support\\Database\\Eloquent\\Concurrency\\Providers\\Provider"
+                    ]
+                },
+                "tooling": {
+                    "rector": {
+                        "config": {
+                            "paths": [
+                                "src"
+                            ]
+                        },
+                        "configured_rules": "tooling/rector/configured-rules.php"
+                    },
+                    "phpstan": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "workbench"
+                            ]
+                        },
+                        "rules": "tooling/phpstan/rules.neon"
+                    },
+                    "pint": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "workbench"
+                            ]
+                        }
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Support\\": "src/Support/",
+                    "Tooling\\": "src/Tooling/"
+                },
+                "exclude-from-classmap": [
+                    "*Test.php",
+                    "*TestCases.php",
+                    "/tests/"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Workbench\\App\\": "workbench/app/",
+                    "Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Justin Seliga",
+                    "email": "justinsel@zillowgroup.com"
+                }
+            ],
+            "description": "Database-maintained concurrency revisions for Eloquent models",
+            "support": {
+                "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-10-24t1355-occ-versioning-m2",
+                "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
+            },
+            "time": "2026-10-24T23:10:28+00:00"
+        },
         {
             "name": "aryeo/tooling-laravel",
             "version": "0.0.41",
@@ -11663,7 +11757,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "aryeo/eloquent-concurrency": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

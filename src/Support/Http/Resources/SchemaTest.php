@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,6 +20,8 @@ use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeUnlessNotSupported;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeWhenNotSupported;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
 use Tests\Fixtures\Support\Users\Schemas;
@@ -26,6 +30,7 @@ use Tests\Fixtures\Tooling\PhpStan\Schemas\MissingCollectedBy;
 use Tests\TestCase;
 
 #[CoversClass(CollectedBy::class)]
+#[CoversClass(EntityTag::class)]
 #[CoversClass(MergeUnlessNotSupported::class)]
 #[CoversClass(MergeWhenNotSupported::class)]
 #[CoversClass(NotDefined::class)]
@@ -109,5 +114,50 @@ class SchemaTest extends TestCase
         $this->expectException(NotFound::class);
 
         User::factory()->create()->toSchema(ApiVersion::V3);
+    }
+
+    #[Test]
+    public function a_revisioned_schema_response_carries_an_entity_tag(): void
+    {
+        User::factory()->state(['first_name' => 'John', 'last_name' => 'Doe', 'concurrency_revision' => 17, 'posts_order_concurrency_revision' => 4])->create();
+        Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
+
+        $response = $this->get('user');
+
+        $response->assertHeader('ETag', '"v2.17.posts_order=4.'.hash('xxh128', (string) $response->baseResponse->getContent()).'"');
+        $this->assertSame(json_encode(['data' => ['first_name' => 'John', 'last_name' => 'Doe', 'biography' => null]]), $response->baseResponse->getContent());
+    }
+
+    #[Test]
+    public function a_non_revisioned_schema_response_carries_no_entity_tag(): void
+    {
+        Post::factory()->create();
+        Route::get('post', fn () => Post::query()->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('post')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function an_unsaved_revisioned_schema_response_carries_no_entity_tag(): void
+    {
+        Route::get('user', fn () => User::factory()->make()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function the_entity_tag_digest_follows_the_body(): void
+    {
+        User::factory()->state(['first_name' => 'John', 'concurrency_revision' => 17])->create();
+        Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
+
+        $first = $this->get('user')->headers->get('ETag');
+        $repeated = $this->get('user')->headers->get('ETag');
+        DB::table('users')->update(['first_name' => 'Joan']);
+        $changed = $this->get('user')->headers->get('ETag');
+
+        $this->assertSame($first, $repeated);
+        $this->assertNotSame($first, $changed);
+        $this->assertSame(EntityTag::parse((string) $first)?->revisions, EntityTag::parse((string) $changed)?->revisions);
     }
 }

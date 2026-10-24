@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Provides;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use ReflectionObject;
+use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Http\Resources\Schemas\Attributes;
 use Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributes;
 use Support\Http\Resources\Schemas\Contracts;
 use Support\Http\Resources\Schemas\Reflection\Property;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
 
 /**
  * @template TVersion of Contracts\Version
@@ -63,6 +66,17 @@ trait AsSchema
         return $this->fields->mapWithKeys(
             fn (Property $property) => [$property->name->snake()->toString() => $this->{$property->name}]
         )->toArray();
+    }
+
+    public function withResponse(Request $request, JsonResponse $response): void
+    {
+        $tag = $this->resource instanceof Revisioned
+            ? EntityTag::forRepresentation($this->resource, $this->schemaVersion, (string) $response->getContent())
+            : null;
+
+        if ($tag !== null) {
+            $response->setEtag((string) $tag);
+        }
     }
 
     protected static function newCollection($resource)
