@@ -17,6 +17,7 @@ use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Tests\Fixtures\Support\Posts\Collection\Posts as PostCollection;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Posts\Schemas\Posts;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
@@ -157,6 +158,19 @@ class SchemaCollectionTest extends TestCase
 
         $this->get('posts?page=1')->assertJsonPath('meta.current_page', 1)->assertHeader('ETag', '"v2.posts_order=4"');
         $this->get('posts?page=2')->assertJsonPath('meta.current_page', 2)->assertHeader('ETag', '"v2.posts_order=4"');
+    }
+
+    #[Test]
+    public function a_schema_collection_is_tagged_through_the_declared_return_type(): void
+    {
+        $user = User::factory()->state(['posts_order_concurrency_revision' => 4])->create();
+        Post::factory()->count(2)->for($user)->create();
+        $posts = new PostCollection($user->posts->all());
+        Route::get('posts', fn () => $posts->toSchemaCollection(ApiVersion::V2)->withTag(
+            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
+        ));
+
+        $this->get('posts')->assertOk()->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order=4"');
     }
 
     #[Test]

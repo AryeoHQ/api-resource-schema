@@ -40,7 +40,7 @@ final readonly class EntityTag implements Stringable
     {
         $revisions = $resource->concurrencyRevisions();
 
-        if ($revisions === null) {
+        if ($revisions === null || preg_match(self::TOKEN, (string) $api->value) !== 1) {
             return null;
         }
 
@@ -95,6 +95,12 @@ final readonly class EntityTag implements Stringable
      */
     public static function matchesAny(string $ifMatch, Version $api, array $compared): bool
     {
+        throw_if(
+            $compared === [],
+            InvalidArgumentException::class,
+            'Matching an entity tag requires at least one compared revision.',
+        );
+
         if (trim($ifMatch) === '*') {
             return true;
         }

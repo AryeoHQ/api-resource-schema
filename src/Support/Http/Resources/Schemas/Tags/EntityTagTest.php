@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
+use Tests\Fixtures\Support\Schemas\DottedApiVersion;
 use Tests\Fixtures\Support\Users\User;
 use Tests\Fixtures\Support\Users\UserRevision;
 use Tests\TestCase;
@@ -38,6 +39,16 @@ class EntityTagTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EntityTag::forNamedRevision($owner, ConcurrencyRevision::Self, ApiVersion::V2);
+    }
+
+    #[Test]
+    public function it_refuses_an_api_version_that_is_not_a_token(): void
+    {
+        $owner = User::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, DottedApiVersion::V2Point1);
     }
 
     #[Test]
@@ -96,6 +107,14 @@ class EntityTagTest extends TestCase
             'list' => ['"v2.posts_order=4", "v2.posts_order=5"'],
             'wildcard' => ['*'],
         ];
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_no_revisions(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        EntityTag::matchesAny('"v2.posts_order=999"', ApiVersion::V2, []);
     }
 
     #[Test]

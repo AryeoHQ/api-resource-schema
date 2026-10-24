@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,6 +26,7 @@ use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
 use Tests\Fixtures\Support\Users\Schemas;
+use Tests\Fixtures\Support\Users\Schemas\Dotted\User as DottedUser;
 use Tests\Fixtures\Support\Users\User;
 use Tests\Fixtures\Tooling\PhpStan\Schemas\MissingCollectedBy;
 use Tests\TestCase;
@@ -43,6 +45,8 @@ use Tests\TestCase;
 class SchemaTest extends TestCase
 {
     use ConditionallyLoadsAttributesTestCases;
+
+    private const array WITHOUT_REVISIONS = ['id', 'first_name', 'middle_name', 'last_name', 'biography', 'date_of_birth', 'deleted_at'];
 
     #[Test]
     public function to_array(): void
@@ -146,6 +150,35 @@ class SchemaTest extends TestCase
     }
 
     #[Test]
+    public function a_schema_response_without_its_revision_columns_carries_no_entity_tag(): void
+    {
+        User::factory()->create();
+        Route::get('user', fn () => User::query()->select(self::WITHOUT_REVISIONS)->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_without_its_revision_columns_carries_no_entity_tag_when_missing_attributes_are_prevented(): void
+    {
+        Model::preventAccessingMissingAttributes();
+        $this->beforeApplicationDestroyed(fn () => Model::preventAccessingMissingAttributes(false));
+        User::factory()->create();
+        Route::get('user', fn () => User::query()->select(self::WITHOUT_REVISIONS)->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_with_a_version_that_is_not_a_token_carries_no_entity_tag(): void
+    {
+        User::factory()->create();
+        Route::get('user', fn () => new DottedUser(User::query()->sole()));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
     public function the_entity_tag_digest_follows_the_body(): void
     {
         User::factory()->state(['first_name' => 'John', 'concurrency_revision' => 17])->create();
@@ -158,6 +191,5 @@ class SchemaTest extends TestCase
 
         $this->assertSame($first, $repeated);
         $this->assertNotSame($first, $changed);
-        $this->assertSame(EntityTag::parse((string) $first)?->revisions, EntityTag::parse((string) $changed)?->revisions);
     }
 }

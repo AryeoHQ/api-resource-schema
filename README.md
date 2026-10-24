@@ -183,7 +183,13 @@ ETag: "v2.17.place_assets_order=4.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 | Named revision | Its trigger fires, such as on a move | `If-Match`, when the target compares that name |
 | Digest | Any byte of the body changes | `If-None-Match` only |
 
-Named revisions follow the model's declaration order. A model that is not `Revisioned`, or that is not yet saved, gets no `ETag`. The digest is computed after the body is encoded, so it covers nested schemas too.
+Named revisions follow the model's declaration order. A schema response gets no `ETag` in these cases:
+
+- The model is not `Revisioned`, or is not yet saved.
+- The model was loaded without every revision column, such as through `select(['id', 'name'])`.
+- The API version value is not a valid tag token. A dotted value such as `v2.1` is not. `EntityTag::forNamedRevision()` throws an `InvalidArgumentException` for such a value.
+
+The digest is computed after the body is encoded, so it covers nested schemas too.
 
 A schema collection carries only the tag you give it. A nested index takes the API version and its relation's named revision, with no own revision and no digest, so every page carries the same tag:
 
@@ -196,7 +202,7 @@ return $place->placeAssets()->paginate(15)
 // ETag: "v2.place_assets_order=4"
 ```
 
-`EntityTag::parse()` returns `null` for a weak, malformed, or listed tag. `EntityTag::matchesAny()` evaluates an `If-Match` header. It accepts `*` and a comma-separated list, and compares the API version and exactly the revisions you name, keyed `self` for the own revision. It ignores the digest:
+`EntityTag::parse()` returns `null` for a weak, malformed, or listed tag. `EntityTag::matchesAny()` evaluates an `If-Match` header. It accepts `*` and a comma-separated list, and compares the API version and exactly the revisions you name, keyed `self` for the own revision. It throws an `InvalidArgumentException` when you name no revision. It ignores the digest:
 
 ```php
 EntityTag::matchesAny((string) $request->header('If-Match'), ApiVersion::V2, ['self' => $place->concurrencyRevision()]);
