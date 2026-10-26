@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Resources\Schemas\Tags;
 
 use InvalidArgumentException;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -78,6 +79,17 @@ class EntityTagTest extends TestCase
 
         $this->assertSame($issued, (string) EntityTag::parse($issued));
         $this->assertTrue(EntityTagList::parse([$issued])?->matchesRevisions(ApiVersion::V2, Revisions::of(null, ['posts_order' => 4])));
+    }
+
+    #[Test]
+    public function it_refuses_a_nested_index_tag_for_an_owner_loaded_without_the_named_revision(): void
+    {
+        $created = User::factory()->state(['posts_order_concurrency_revision' => 4])->create();
+        $owner = User::query()->select(['id', 'concurrency_revision'])->findOrFail($created->getKey());
+
+        $this->expectException(LogicException::class);
+
+        EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, ApiVersion::V2);
     }
 
     #[Test]

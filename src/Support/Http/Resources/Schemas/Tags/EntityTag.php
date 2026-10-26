@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Resources\Schemas\Tags;
 
 use InvalidArgumentException;
+use LogicException;
 use Stringable;
 use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
@@ -46,7 +47,11 @@ final readonly class EntityTag implements Stringable
 
     public static function forNamedRevision(Revisioned $owner, NamesConcurrencyRevision $revision, Version $api): self
     {
-        return new self((string) $api->value, Revisions::of(null, [(string) $revision->value => $owner->concurrencyRevision($revision)]), null);
+        $value = $owner->concurrencyRevisions()?->get($revision) ?? throw new LogicException(
+            sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $owner::class),
+        );
+
+        return new self((string) $api->value, Revisions::of(null, [(string) $revision->value => $value]), null);
     }
 
     public static function parse(string $value): null|self

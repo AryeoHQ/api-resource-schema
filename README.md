@@ -202,6 +202,8 @@ return $place->placeAssets()->paginate(15)
 // ETag: "v2.place_assets_order=4"
 ```
 
+`EntityTag::forNamedRevision()` reads the revision through the owner's `concurrencyRevisions()`. It throws a `LogicException` when that returns `null`, so an owner loaded without every revision column never issues a tag of `0`.
+
 An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-concurrency`, and the digest. `EntityTag::parse()` returns `null` for a weak, malformed, or listed tag. It also returns `null` for a named revision whose name is not lowercase letters, digits, and underscores starting with a letter, or is `self`.
 
 `EntityTagList::parse()` reads an `If-Match` or `If-None-Match` field, following RFC 9110. It takes every line of the header and joins them. It returns `null` for a malformed field, so a malformed field matches nothing:
