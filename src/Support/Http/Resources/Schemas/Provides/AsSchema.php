@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Provides;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -74,8 +73,6 @@ trait AsSchema
         $resource = $this->resource;
 
         $tag = $resource instanceof Revisioned
-            && $resource instanceof Model
-            && array_diff($resource->concurrencyRevisionColumns(), array_keys($resource->getAttributes())) === []
             ? EntityTag::forRepresentation($resource, $this->schemaVersion, (string) $response->getContent())
             : null;
 
