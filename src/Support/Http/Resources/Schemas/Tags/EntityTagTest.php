@@ -13,6 +13,7 @@ use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Schemas\DottedApiVersion;
+use Tests\Fixtures\Support\Schemas\LineFeedApiVersion;
 use Tests\Fixtures\Support\Users\User;
 use Tests\Fixtures\Support\Users\UserRevision;
 use Tests\TestCase;
@@ -57,6 +58,14 @@ class EntityTagTest extends TestCase
     public function it_does_not_tag_a_representation_without_its_revisions(): void
     {
         $this->assertNull(EntityTag::forRepresentation(User::factory()->make(), ApiVersion::V2, '{}'));
+    }
+
+    #[Test]
+    public function it_does_not_tag_a_representation_with_an_api_version_that_ends_in_a_line_feed(): void
+    {
+        $user = User::factory()->state(['concurrency_revision' => 17, 'posts_order_concurrency_revision' => 4])->create();
+
+        $this->assertNull(EntityTag::forRepresentation($user, LineFeedApiVersion::V2, '{}'));
     }
 
     #[Test]
@@ -110,6 +119,16 @@ class EntityTagTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, DottedApiVersion::V2Point1);
+    }
+
+    #[Test]
+    public function it_refuses_a_nested_index_tag_with_an_api_version_that_ends_in_a_line_feed(): void
+    {
+        $owner = User::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, LineFeedApiVersion::V2);
     }
 
     #[Test]
@@ -168,6 +187,9 @@ class EntityTagTest extends TestCase
             'repeated name' => ['"v2.posts_order=4.posts_order=5"'],
             'trailing segment' => ['"v2.17.'.self::DIGEST.'.posts_order=4"'],
             'list' => ['"v2.posts_order=4", "v2.posts_order=5"'],
+            'line feed after the api version' => ["\"v2\n.posts_order=4\""],
+            'line feed after the digest' => ['"v2.17.'.self::DIGEST."\n".'"'],
+            'line feed after a revision' => ["\"v2.posts_order=4\n\""],
             'wildcard' => ['*'],
             'empty name' => ['"v2.=4"'],
             'uppercase name' => ['"v2.Posts_order=4"'],

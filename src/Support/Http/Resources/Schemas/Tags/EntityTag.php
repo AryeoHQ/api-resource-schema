@@ -16,11 +16,11 @@ final readonly class EntityTag implements Stringable
 {
     private const string ALGORITHM = 'xxh128';
 
-    private const string DIGEST = '/^[0-9a-f]{32}$/';
+    private const string DIGEST = '/^[0-9a-f]{32}$/D';
 
-    private const string REVISION = '/^(0|[1-9][0-9]*)$/';
+    private const string REVISION = '/^(0|[1-9][0-9]*)$/D';
 
-    private const string TOKEN = '/^[\x21\x23-\x2B\x2D\x2F-\x3C\x3E-\x7E]+$/';
+    private const string TOKEN = '/^[\x21\x23-\x2B\x2D\x2F-\x3C\x3E-\x7E]+$/D';
 
     private function __construct(
         public string $api,
