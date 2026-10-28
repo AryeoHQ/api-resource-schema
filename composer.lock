@@ -12,18 +12,18 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "b61748edd9516c2327e1885c033c04c444ca8859"
+                "reference": "635d13ea38e03c63fbfc502f8f391190c2ba2c2b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/b61748edd9516c2327e1885c033c04c444ca8859",
-                "reference": "b61748edd9516c2327e1885c033c04c444ca8859",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/635d13ea38e03c63fbfc502f8f391190c2ba2c2b",
+                "reference": "635d13ea38e03c63fbfc502f8f391190c2ba2c2b",
                 "shasum": ""
             },
             "require": {
                 "aryeo/tooling-laravel": "0.0.43",
                 "laravel/framework": "^12.37 || ^13",
-                "php": "^8.4"
+                "php": "^8.5"
             },
             "require-dev": {
                 "orchestra/testbench": "^10.6 || ^11",
@@ -98,7 +98,7 @@
                 "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/chore/2026-10-24t1355-occ-versioning-m17",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-10-28T11:25:12+00:00"
+            "time": "2026-10-28T11:31:33+00:00"
         },
         {
             "name": "aryeo/tooling-laravel",
