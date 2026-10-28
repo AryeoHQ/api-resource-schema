@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f767a3137f04594cb976b1179088d794",
+    "content-hash": "0182de30137a83c2749f18d88a537453",
     "packages": [
         {
             "name": "aryeo/eloquent-concurrency",
-            "version": "dev-chore/2026-10-24t1355-occ-versioning-m17",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "635d13ea38e03c63fbfc502f8f391190c2ba2c2b"
+                "reference": "0087eafaefdc254c1bccba386503bea6d7a0d91e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/635d13ea38e03c63fbfc502f8f391190c2ba2c2b",
-                "reference": "635d13ea38e03c63fbfc502f8f391190c2ba2c2b",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/0087eafaefdc254c1bccba386503bea6d7a0d91e",
+                "reference": "0087eafaefdc254c1bccba386503bea6d7a0d91e",
                 "shasum": ""
             },
             "require": {
@@ -30,6 +30,7 @@
                 "orchestra/testbench-core": "^10.7 || ^11",
                 "phpunit/phpunit": "^12.4.1 || ^13"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -95,10 +96,10 @@
             ],
             "description": "Database-maintained concurrency revisions for Eloquent models",
             "support": {
-                "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/chore/2026-10-24t1355-occ-versioning-m17",
+                "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/main",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-10-28T11:31:33+00:00"
+            "time": "2026-10-28T12:05:31+00:00"
         },
         {
             "name": "aryeo/tooling-laravel",
