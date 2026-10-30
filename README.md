@@ -212,18 +212,19 @@ An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-c
 |---|---|
 | `*` alone | `$any` is `true` |
 | A comma-separated list of `"…"` and `W/"…"` tags | `$tags` lists them, `W/` kept |
-| Empty | `$tags` is empty, so it matches nothing |
+| Empty or missing | `$tags` is empty, so it matches nothing |
 | `*` with a tag, or any malformed element | `null` |
 
-`matchesRevisions()` evaluates `If-Match`. `*` matches. A weak tag never matches. Another tag matches when its API version is the one you give and every revision you name equals the tag's. It ignores the digest and any revision you do not name:
+`matchesRevisions()` evaluates `If-Match`. `*` matches. A weak tag never matches. Another tag matches when its API version is the one you give and every revision you name equals the tag's. It ignores the digest and any revision you do not name. Check that the header is there first, because a missing header matches nothing:
 
 ```php
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Resources\Schemas\Tags\EntityTagList;
 
-EntityTagList::parse($request->headers->all('If-Match'))
-    ?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision()))
-    ?? false;
+$request->headers->has('If-Match')
+    && (EntityTagList::parse($request->headers->all('If-Match'))
+        ?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision()))
+        ?? false);
 ```
 
 `matchesWeakly()` evaluates `If-None-Match` against the response's `ETag`. `*` matches. Another tag matches when it equals the `ETag`, digest included, with any `W/` prefix ignored on both sides.
