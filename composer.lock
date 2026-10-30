@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "96102a1eddea6ff6332183c3b6b0aa79",
+    "content-hash": "48988a94d1e6eafbbd5abb2ba5a2b29a",
     "packages": [
         {
             "name": "aryeo/eloquent-concurrency",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "dist": {
                 "type": "zip",
-                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/eloquent-concurrency/eloquent-concurrency-0.0.2.zip",
-                "reference": "7d013f8dedb73badbbb30a0d28aea5e87550735a"
+                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/eloquent-concurrency/eloquent-concurrency-0.0.3.zip",
+                "reference": "c3139fef8bd075dfc967e5012075c7cd41a95436"
             },
             "require": {
                 "aryeo/tooling-laravel": "0.0.43",
@@ -87,7 +87,7 @@
                     "email": "justinsel@zillowgroup.com"
                 }
             ],
-            "description": "Database-maintained concurrency revisions for Eloquent models"
+            "description": "Application-raised concurrency revisions for Eloquent models, with Postgres refusing a missed raise"
         },
         {
             "name": "aryeo/tooling-laravel",
