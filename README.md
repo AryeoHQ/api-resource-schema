@@ -164,6 +164,73 @@ return $users->toSchemaCollection(ApiVersion::V2);
 return User::paginate(15)->toSchemaCollection(ApiVersion::V2);
 ```
 
+## ETags
+
+A schema response carries an `ETag` when its model implements `Revisioned` from [`aryeo/eloquent-concurrency`](https://github.com/AryeoHQ/eloquent-concurrency):
+
+```
+ETag: "v2.17.place_assets_order=4.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+       │  │  │                    └ digest: xxh128 of the response body
+       │  │  └ named revisions: <name>=<revision>
+       │  └ own revision: the subject row's concurrency_revision
+       └ API version
+```
+
+| Part | Changes when | Read by |
+|---|---|---|
+| API version | The client calls another API version | `If-Match` |
+| Own revision | Any column of the subject row changes | `If-Match`, when the target compares the own revision |
+| Named revision | Its trigger fires, such as on a move | `If-Match`, when the target compares that name |
+| Digest | Any byte of the body changes | `If-None-Match` only |
+
+Named revisions follow the model's declaration order. A schema response gets no `ETag` in these cases:
+
+- The model is not `Revisioned`.
+- The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the model was loaded without every revision column, such as through `select(['id', 'name'])`.
+- The API version value is not a valid tag token. A dotted value such as `v2.1` is not. `EntityTag::forNamedRevision()` throws an `InvalidArgumentException` for such a value.
+
+The digest is computed after the body is encoded, so it covers nested schemas too.
+
+A schema collection carries only the tag you give it. A nested index takes the API version and its relation's named revision, with no own revision and no digest, so every page carries the same tag:
+
+```php
+use Support\Http\Resources\Schemas\Tags\EntityTag;
+
+return $place->placeAssets()->paginate(15)
+    ->toSchemaCollection(ApiVersion::V2)
+    ->withTag(EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2));
+// ETag: "v2.place_assets_order=4"
+```
+
+`EntityTag::forNamedRevision()` reads the revision through the owner's `concurrencyRevisions()`. It throws a `LogicException` when that returns `null`, so an owner loaded without every revision column never issues a tag of `0`.
+
+An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-concurrency`, and the digest. `EntityTag::parse()` returns `null` for a weak, malformed, or listed tag. It also returns `null` for a named revision whose name is not lowercase letters, digits, and underscores starting with a letter, or is `self`.
+
+`EntityTagList::parse()` reads an `If-Match` or `If-None-Match` field, following RFC 9110. It takes every line of the header and joins them. It returns `null` for a malformed field, so a malformed field matches nothing:
+
+| Field | Result |
+|---|---|
+| `*` alone | `$any` is `true` |
+| A comma-separated list of `"…"` and `W/"…"` tags | `$tags` lists them, `W/` kept |
+| Empty or missing | `$tags` is empty, so it matches nothing |
+| `*` with a tag, or any malformed element | `null` |
+
+`matchesRevisions()` evaluates `If-Match`. `*` matches. A weak tag never matches. Another tag matches when its API version is the one you give and every revision you name equals the tag's. It ignores the digest and any revision you do not name. Check that the header is there first, because a missing header matches nothing:
+
+```php
+use Support\Database\Eloquent\Concurrency\Revisions;
+use Support\Http\Resources\Schemas\Tags\EntityTagList;
+
+$request->headers->has('If-Match')
+    && (EntityTagList::parse($request->headers->all('If-Match'))
+        ?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision()))
+        ?? false);
+```
+
+`matchesWeakly()` evaluates `If-None-Match` against the response's `ETag`. `*` matches. Another tag matches when it equals the `ETag`, digest included, with any `W/` prefix ignored on both sides.
+
+A schema or schema collection must not define `withResponse()`, because the `AsSchema` and `AsSchemaCollection` traits set the `ETag` there. The `SchemaMustNotDefineWithResponse` PHPStan rule reports one that does.
+
 ## Generator
 
 The `make:resource` command scaffolds a Schema and SchemaCollection pair:

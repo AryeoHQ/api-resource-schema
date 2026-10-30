@@ -39,6 +39,10 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemaMustNotDefineWithResponse
+        tags:
+            - phpstan.rules.rule
+    -
         class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableMustUseTransformsToSchema
         tags:
             - phpstan.rules.rule

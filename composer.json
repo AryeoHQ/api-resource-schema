@@ -20,7 +20,8 @@
         "phpstan/phpstan": "^2.1",
         "nikic/php-parser": "^5.7",
         "aryeo/tooling-laravel": "0.0.43",
-        "laravel/prompts": "^0.3.17"
+        "laravel/prompts": "^0.3.17",
+        "aryeo/eloquent-concurrency": "0.0.3"
     },
     "require-dev": {
         "orchestra/testbench": "^10.6 || ^11",

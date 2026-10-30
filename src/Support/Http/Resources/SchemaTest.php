@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,14 +21,18 @@ use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeUnlessNotSupported;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeWhenNotSupported;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
 use Tests\Fixtures\Support\Users\Schemas;
+use Tests\Fixtures\Support\Users\Schemas\Dotted\User as DottedUser;
 use Tests\Fixtures\Support\Users\User;
 use Tests\Fixtures\Tooling\PhpStan\Schemas\MissingCollectedBy;
 use Tests\TestCase;
 
 #[CoversClass(CollectedBy::class)]
+#[CoversClass(EntityTag::class)]
 #[CoversClass(MergeUnlessNotSupported::class)]
 #[CoversClass(MergeWhenNotSupported::class)]
 #[CoversClass(NotDefined::class)]
@@ -38,6 +45,8 @@ use Tests\TestCase;
 class SchemaTest extends TestCase
 {
     use ConditionallyLoadsAttributesTestCases;
+
+    private const array WITHOUT_REVISIONS = ['id', 'first_name', 'middle_name', 'last_name', 'biography', 'date_of_birth', 'deleted_at'];
 
     #[Test]
     public function to_array(): void
@@ -109,5 +118,78 @@ class SchemaTest extends TestCase
         $this->expectException(NotFound::class);
 
         User::factory()->create()->toSchema(ApiVersion::V3);
+    }
+
+    #[Test]
+    public function a_revisioned_schema_response_carries_an_entity_tag(): void
+    {
+        User::factory()->state(['first_name' => 'John', 'last_name' => 'Doe', 'posts_order_concurrency_revision' => 4])->create();
+        Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
+
+        $response = $this->get('user');
+
+        $response->assertHeader('ETag', '"v2.1.posts_order=4.'.hash('xxh128', (string) $response->baseResponse->getContent()).'"');
+        $this->assertSame(json_encode(['data' => ['first_name' => 'John', 'last_name' => 'Doe', 'biography' => null]]), $response->baseResponse->getContent());
+    }
+
+    #[Test]
+    public function a_non_revisioned_schema_response_carries_no_entity_tag(): void
+    {
+        Post::factory()->create();
+        Route::get('post', fn () => Post::query()->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('post')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function an_unsaved_revisioned_schema_response_carries_no_entity_tag(): void
+    {
+        Route::get('user', fn () => User::factory()->make()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_without_its_revision_columns_carries_no_entity_tag(): void
+    {
+        User::factory()->create();
+        Route::get('user', fn () => User::query()->select(self::WITHOUT_REVISIONS)->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_without_its_revision_columns_carries_no_entity_tag_when_missing_attributes_are_prevented(): void
+    {
+        Model::preventAccessingMissingAttributes();
+        $this->beforeApplicationDestroyed(fn () => Model::preventAccessingMissingAttributes(false));
+        User::factory()->create();
+        Route::get('user', fn () => User::query()->select(self::WITHOUT_REVISIONS)->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_with_a_version_that_is_not_a_token_carries_no_entity_tag(): void
+    {
+        User::factory()->create();
+        Route::get('user', fn () => new DottedUser(User::query()->sole()));
+
+        $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function the_entity_tag_digest_follows_the_body(): void
+    {
+        User::factory()->state(['first_name' => 'John', 'concurrency_revision' => 17])->create();
+        Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
+
+        $first = $this->get('user')->headers->get('ETag');
+        $repeated = $this->get('user')->headers->get('ETag');
+        DB::table('users')->update(['first_name' => 'Joan']);
+        $changed = $this->get('user')->headers->get('ETag');
+
+        $this->assertSame($first, $repeated);
+        $this->assertNotSame($first, $changed);
     }
 }

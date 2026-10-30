@@ -33,6 +33,8 @@ abstract class TestCase extends Testbench\TestCase
             $table->date('date_of_birth')->nullable();
             $table->timestamps();
             $table->softDeletes();
+            $table->concurrencyRevision();
+            $table->namedConcurrencyRevision('posts_order');
         });
 
         Schema::create('posts', function (Blueprint $table): void {
