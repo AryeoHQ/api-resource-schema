@@ -123,12 +123,12 @@ class SchemaTest extends TestCase
     #[Test]
     public function a_revisioned_schema_response_carries_an_entity_tag(): void
     {
-        User::factory()->state(['first_name' => 'John', 'last_name' => 'Doe', 'concurrency_revision' => 17, 'posts_order_concurrency_revision' => 4])->create();
+        User::factory()->state(['first_name' => 'John', 'last_name' => 'Doe', 'posts_order_concurrency_revision' => 4])->create();
         Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
 
         $response = $this->get('user');
 
-        $response->assertHeader('ETag', '"v2.17.posts_order=4.'.hash('xxh128', (string) $response->baseResponse->getContent()).'"');
+        $response->assertHeader('ETag', '"v2.1.posts_order=4.'.hash('xxh128', (string) $response->baseResponse->getContent()).'"');
         $this->assertSame(json_encode(['data' => ['first_name' => 'John', 'last_name' => 'Doe', 'biography' => null]]), $response->baseResponse->getContent());
     }
 

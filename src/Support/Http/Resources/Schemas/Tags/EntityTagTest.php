@@ -27,13 +27,13 @@ class EntityTagTest extends TestCase
     #[Test]
     public function it_tags_a_representation_with_the_api_version_the_revisions_and_the_digest(): void
     {
-        $user = User::factory()->state(['concurrency_revision' => 17, 'posts_order_concurrency_revision' => 4])->create();
+        $user = User::factory()->state(['posts_order_concurrency_revision' => 4])->create();
 
         $tag = EntityTag::forRepresentation($user, ApiVersion::V2, '{"data":[]}');
 
         $this->assertNotNull($tag);
-        $this->assertSame('"v2.17.posts_order=4.'.hash('xxh128', '{"data":[]}').'"', (string) $tag);
-        $this->assertEquals(Revisions::of(17, ['posts_order' => 4]), $tag->revisions);
+        $this->assertSame('"v2.1.posts_order=4.'.hash('xxh128', '{"data":[]}').'"', (string) $tag);
+        $this->assertEquals(Revisions::of(1, ['posts_order' => 4]), $tag->revisions);
     }
 
     #[Test]
