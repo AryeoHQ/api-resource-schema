@@ -166,27 +166,25 @@ return User::paginate(15)->toSchemaCollection(ApiVersion::V2);
 
 ## ETags
 
-A schema response carries an `ETag` when its model implements `Revisioned` from [`aryeo/eloquent-concurrency`](https://github.com/AryeoHQ/eloquent-concurrency):
+A schema response carries an `ETag` when its model implements `Revisioned` from [`aryeo/eloquent-concurrency`](https://github.com/AryeoHQ/eloquent-concurrency). Every revision and digest in a tag is 32 lowercase hex characters.
 
 ```
-ETag: "v2.17.place_assets_order=4.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
-       │  │  │                    └ digest: xxh128 of the response body
-       │  │  └ named revisions: <name>=<revision>
-       │  └ own revision: the subject row's concurrency_revision
+ETag: "v2.3f1c2b4a5d6e7f8091a2b3c4d5e6f708.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+       │  │                                └ digest: xxh128 of the response body
+       │  └ own revision: the digest PostgreSQL computes from the subject row
        └ API version
 ```
 
 | Part | Changes when | Read by |
 |---|---|---|
 | API version | The client calls another API version | `If-Match` |
-| Own revision | Any column of the subject row changes | `If-Match`, when the target compares the own revision |
-| Named revision | Its trigger fires, such as on a move | `If-Match`, when the target compares that name |
+| Own revision | An observed column of the subject row changes, whoever writes it | `If-Match`, when the target compares the own revision |
 | Digest | Any byte of the body changes | `If-None-Match` only |
 
-Named revisions follow the model's declaration order. A schema response gets no `ETag` in these cases:
+A representation tag carries no named revision, so a change to a relation, such as its order, leaves the tag alone. A schema response gets no `ETag` in these cases:
 
 - The model is not `Revisioned`.
-- The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the model was loaded without every revision column, such as through `select(['id', 'name'])`.
+- The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the query that read it set a select list, such as `select(['id', 'name'])`. eloquent-concurrency selects the own revision only beside a query with no select list.
 - The API version value is not a valid tag token. A dotted value such as `v2.1` is not. `EntityTag::forNamedRevision()` throws an `InvalidArgumentException` for such a value.
 
 The digest is computed after the body is encoded, so it covers nested schemas too.
@@ -199,12 +197,19 @@ use Support\Http\Resources\Schemas\Tags\EntityTag;
 return $place->placeAssets()->paginate(15)
     ->toSchemaCollection(ApiVersion::V2)
     ->withTag(EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2));
-// ETag: "v2.place_assets_order=4"
+// ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
 ```
 
-`EntityTag::forNamedRevision()` reads the revision through the owner's `concurrencyRevisions()`. It throws a `LogicException` when that returns `null`, so an owner loaded without every revision column never issues a tag of `0`.
+```
+ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
+       │  │                 └ named revision: the digest of the relation's member keys, in its order
+       │  └ the revision's name
+       └ API version
+```
 
-An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-concurrency`, and the digest. `EntityTag::parse()` returns `null` for a weak, malformed, or listed tag. It also returns `null` for a named revision whose name is not lowercase letters, digits, and underscores starting with a letter, or is `self`.
+`EntityTag::forNamedRevision()` computes the named revision with the owner's `concurrencyRevision($revision)`, which runs one order-digest query. The owner must declare the revision with `#[NamedConcurrencyRevision]` on its relation method. Otherwise eloquent-concurrency throws `UndeclaredConcurrencyRevision`, a `LogicException`.
+
+An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-concurrency`, and the digest. `EntityTag::parse()` reads `"<api>.<own>.<digest>"` when the tag has exactly three segments and the last two are hex. It reads `"<api>.<name>=<revision>"` otherwise. It returns `null` for a weak, malformed, or listed tag, and for a revision that is not 32 lowercase hex characters. It also returns `null` for a named revision whose name is not lowercase letters, digits, and underscores starting with a letter, or is `self`.
 
 `EntityTagList::parse()` reads an `If-Match` or `If-None-Match` field, following RFC 9110. It takes every line of the header and joins them. It returns `null` for a malformed field, so a malformed field matches nothing:
 
@@ -218,12 +223,13 @@ An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-c
 `matchesRevisions()` evaluates `If-Match`. `*` matches. A weak tag never matches. Another tag matches when its API version is the one you give and every revision you name equals the tag's. It ignores the digest and any revision you do not name. Check that the header is there first, because a missing header matches nothing:
 
 ```php
+use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Resources\Schemas\Tags\EntityTagList;
 
 $request->headers->has('If-Match')
     && (EntityTagList::parse($request->headers->all('If-Match'))
-        ?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision()))
+        ?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision(ConcurrencyRevision::Self)))
         ?? false);
 ```
 

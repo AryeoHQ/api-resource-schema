@@ -30,7 +30,6 @@ use Tests\Fixtures\Support\TeamUser\TeamUser;
  * @property string $full_name
  */
 #[CollectedBy(Collection\Users::class)]
-#[NamedConcurrencyRevision(UserRevision::PostsOrder)]
 #[UseFactory(Factory::class)]
 #[UseSchema(Schemas\V1\User::class)]
 #[UseSchema(Schemas\V2\User::class)]
@@ -51,6 +50,7 @@ class User extends Model implements Revisioned, Schemable
     /**
      * @return HasMany<Post, $this>
      */
+    #[NamedConcurrencyRevision(UserRevision::PostsOrder)]
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
