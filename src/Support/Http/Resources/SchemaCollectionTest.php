@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources;
 
-use Closure;
 use Illuminate\Database\Connection;
-use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +21,7 @@ use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Support\Http\Resources\Schemas\Tags\EntityTagList;
+use Support\Http\Resources\Schemas\Tags\Snapshot;
 use Tests\Fixtures\Support\Posts\Collection\Posts as PostCollection;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Posts\Schemas\Posts;
@@ -33,30 +32,21 @@ use Tests\Fixtures\Support\Users\Schemas;
 use Tests\Fixtures\Support\Users\User;
 use Tests\Fixtures\Support\Users\UserRevision;
 use Tests\Fixtures\Tooling\PhpStan\SchemaCollections\MissingCollects;
+use Tests\Support\Concerns\InterleavesWrites;
 use Tests\TestCase;
 
 #[CoversClass(Collects::class)]
 #[CoversClass(EntityTag::class)]
 #[CoversClass(NotDefined::class)]
 #[CoversClass(NotFound::class)]
+#[CoversClass(Snapshot::class)]
 #[CoversClass(UseSchemaCollection::class)]
 #[CoversClass(Version::class)]
 #[CoversTrait(AsSchemaCollection::class)]
 #[CoversTrait(TransformsToSchemaCollection::class)]
 class SchemaCollectionTest extends TestCase
 {
-    /** @var list<string> */
-    protected array $connectionsToTransact = [];
-
-    protected function afterRefreshingDatabase(): void
-    {
-        DB::purge('writer');
-        config()->set('database.connections.writer', config('database.connections.'.DB::getDefaultConnection()));
-
-        $this->beforeApplicationDestroyed(function (): void {
-            DB::statement('truncate users, posts, teams, team_user restart identity');
-        });
-    }
+    use InterleavesWrites;
 
     #[Test]
     public function it_collects_schema(): void
@@ -159,7 +149,7 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
+        Route::get('posts', fn () => Snapshot::read(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
             return Posts::make($user->posts)->withTag($tag);
@@ -173,7 +163,7 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
+        Route::get('posts', fn () => Snapshot::read(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
             return Posts::make($user->posts()->paginate(1))->withTag($tag);
@@ -189,7 +179,7 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
+        Route::get('posts', fn () => Snapshot::read(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
             return (new PostCollection($user->posts()->get()->all()))->toSchemaCollection(ApiVersion::V2)->withTag($tag);
@@ -264,30 +254,10 @@ class SchemaCollectionTest extends TestCase
 
     private function routePostsOf(User $user): void
     {
-        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
+        Route::get('posts', fn () => Snapshot::read(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
             return Posts::make($user->posts()->get())->withTag($tag);
         }));
-    }
-
-    private function inOneSnapshot(Closure $reads): mixed
-    {
-        return DB::transaction(function () use ($reads): mixed {
-            DB::statement('set transaction isolation level repeatable read, read only');
-
-            return $reads();
-        });
-    }
-
-    private function afterTheFirstRead(Closure $write): void
-    {
-        $written = false;
-        DB::listen(function (QueryExecuted $query) use (&$written, $write): void {
-            if (! $written && $query->connectionName !== 'writer' && stripos($query->sql, 'select') === 0) {
-                $written = true;
-                $write(DB::connection('writer'));
-            }
-        });
     }
 }

@@ -26,6 +26,7 @@ use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
+use Tests\Fixtures\Support\Users\CountedUser;
 use Tests\Fixtures\Support\Users\Schemas;
 use Tests\Fixtures\Support\Users\Schemas\Dotted\User as DottedUser;
 use Tests\Fixtures\Support\Users\User;
@@ -168,6 +169,15 @@ class SchemaTest extends TestCase
         Route::get('user', fn () => User::query()->select(self::SELECTED_COLUMNS)->sole()->toSchema(ApiVersion::V2));
 
         $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_of_a_model_with_a_with_count_property_carries_no_entity_tag(): void
+    {
+        Post::factory()->count(2)->for(User::factory()->create())->create();
+        Route::get('user', fn () => CountedUser::query()->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertJsonPath('data.posts_count', 2)->assertHeaderMissing('ETag');
     }
 
     #[Test]

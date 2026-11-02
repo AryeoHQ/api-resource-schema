@@ -265,7 +265,8 @@ class EntityTagTest extends TestCase
         $this->assertSame('"v2.posts_order='.self::ORDER.'"', (string) $tag);
     }
 
-    #[DataProvider('unparseable')]
+    #[DataProvider('unparseableRepresentationTags')]
+    #[DataProvider('unparseableNestedIndexTags')]
     #[Test]
     public function it_does_not_parse_a_weak_malformed_or_listed_tag(string $value): void
     {
@@ -275,7 +276,7 @@ class EntityTagTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
-    public static function unparseable(): array
+    public static function unparseableRepresentationTags(): array
     {
         return [
             'weak' => ['W/"v2.'.self::OWN.'.'.self::DIGEST.'"'],
@@ -290,6 +291,18 @@ class EntityTagTest extends TestCase
             'short own revision' => ['"v2.3f1c.'.self::DIGEST.'"'],
             'uppercase own revision' => ['"v2.'.strtoupper(self::OWN).'.'.self::DIGEST.'"'],
             'integer own revision' => ['"v2.17.'.self::DIGEST.'"'],
+            'trailing segment' => ['"v2.'.self::OWN.'.'.self::DIGEST.'.posts_order='.self::ORDER.'"'],
+            'line feed after the digest' => ['"v2.'.self::OWN.'.'.self::DIGEST."\n".'"'],
+            'wildcard' => ['*'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function unparseableNestedIndexTags(): array
+    {
+        return [
             'integer named revision' => ['"v2.posts_order=4"'],
             'non-hex named revision' => ['"v2.posts_order=four"'],
             'short named revision' => ['"v2.posts_order=a1b2"'],
@@ -300,12 +313,9 @@ class EntityTagTest extends TestCase
             'self by name' => ['"v2.self='.self::OWN.'"'],
             'repeated name' => ['"v2.posts_order='.self::ORDER.'.posts_order='.self::OWN.'"'],
             'two named revisions' => ['"v2.posts_order='.self::ORDER.'.notes_order='.self::OWN.'"'],
-            'trailing segment' => ['"v2.'.self::OWN.'.'.self::DIGEST.'.posts_order='.self::ORDER.'"'],
             'list' => ['"v2.posts_order='.self::ORDER.'", "v2.posts_order='.self::OWN.'"'],
             'line feed after the api version' => ["\"v2\n.posts_order=".self::ORDER.'"'],
-            'line feed after the digest' => ['"v2.'.self::OWN.'.'.self::DIGEST."\n".'"'],
             'line feed after a revision' => ['"v2.posts_order='.self::ORDER."\n\""],
-            'wildcard' => ['*'],
             'empty name' => ['"v2.='.self::ORDER.'"'],
             'uppercase name' => ['"v2.Posts_order='.self::ORDER.'"'],
             'hyphenated name' => ['"v2.posts-order='.self::ORDER.'"'],

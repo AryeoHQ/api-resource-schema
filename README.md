@@ -184,7 +184,12 @@ ETag: "v2.3f1c2b4a5d6e7f8091a2b3c4d5e6f708.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 A representation tag carries no named revision, so a change to a relation, such as its order, leaves the own revision alone. The digest still follows the rendered body, so a change to a relation the body renders changes the digest. A schema response gets no `ETag` in these cases:
 
 - The model is not `Revisioned`.
-- The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the query that read it set a select list, such as `select(['id', 'name'])`. eloquent-concurrency selects the own revision only beside a query with no select list.
+- The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the read that loaded it carries no digest. Nothing reports why the `ETag` is missing. eloquent-concurrency selects the digest only beside a query whose select list is empty. Its [Limits](https://github.com/AryeoHQ/eloquent-concurrency#limits) section describes each of these reads, and none of them carries a digest:
+  - A model with a `$withCount` property, and the parent of a `withCount()` read.
+  - A select list the caller sets: any `select()`, even `select('*')`, and `find($id, ['id'])`. A join read that selects a joined column sets one.
+  - A `fromSub()` read, and a union with a side that carries no digest.
+  - `Collection::fresh()` and queue restoration, which bypass global scopes. Call `refresh()` on a model that needs a tag.
+  - A connection on a driver other than PostgreSQL.
 - The API version value is not a valid tag token. A dotted value such as `v2.1` is not. `EntityTag::forNamedRevision()` throws an `InvalidArgumentException` for such a value.
 
 The digest is computed after the body is encoded, so it covers nested schemas too.
@@ -192,27 +197,25 @@ The digest is computed after the body is encoded, so it covers nested schemas to
 A schema collection carries only the tag you give it. A nested index takes the API version and its relation's named revision, with no own revision and no digest, so every page carries the same tag:
 
 ```php
-use Illuminate\Support\Facades\DB;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Support\Http\Resources\Schemas\Tags\Snapshot;
 
-[$tag, $page] = DB::transaction(function () use ($place) {
-    DB::statement('set transaction isolation level repeatable read, read only');
-
-    return [
-        EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
-        $place->placeAssets()->paginate(15),
-    ];
-});
+[$tag, $page] = Snapshot::read(fn (): array => [
+    EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
+    $place->placeAssets()->paginate(15),
+]);
 
 return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
 // ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
 ```
 
-Read the tag and the page in one `REPEATABLE READ` transaction. Outside one, each statement reads its own snapshot, so a write can commit between the two reads. The order of the reads does not prevent the failure. Suppose the order is A at the tag read, B at the page read, and A again when the client writes. The tag shows A and the body shows B, so an `If-Match` of A passes against a body the client never saw.
+Read the tag and the page in one `Snapshot::read()` call. It runs the closure in one `REPEATABLE READ, READ ONLY` transaction, and returns what the closure returns. Outside one such transaction, each statement reads its own snapshot, so a write can commit between the two reads. The order of the reads does not prevent the failure. Suppose the order is A at the tag read, B at the page read, and A again when the client writes. The tag shows A and the body shows B, so an `If-Match` of A passes against a body the client never saw.
 
 In a `REPEATABLE READ` transaction, every statement reads the snapshot that the first read takes, so the tag and the body show one state. A write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`. A write that later restores that state lets `If-Match` pass, but the client then writes against the order it saw.
 
-`set transaction` must be the transaction's first statement, because PostgreSQL rejects it after any query. Do not open this transaction inside another one, because Laravel then opens a savepoint, and the statement fails there.
+`Snapshot::read()` opens its transaction on the default connection, so the closure must read through that connection. It issues `set transaction` as the transaction's first statement, because PostgreSQL rejects it after any query and inside a savepoint. It therefore throws a `LogicException` when the connection is already in a transaction.
+
+`RefreshDatabase` runs each test inside a transaction, so a feature test that uses it cannot call an endpoint that reads a snapshot. Use `DatabaseTruncation` in that test class instead. Alternatively, set `$connectionsToTransact` to `[]` and clear the tables yourself.
 
 ```
 ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
@@ -234,20 +237,49 @@ An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-c
 | Empty or missing | `$tags` is empty, so it matches nothing |
 | `*` with a tag, or any malformed element | `null` |
 
-`matchesRevisions()` evaluates `If-Match`. `*` matches. A weak tag never matches. Another tag matches when its API version is the one you give and every revision you name equals the tag's. It ignores the digest and any revision you do not name. Check that the header is there first, because a missing header matches nothing:
+`matchesRevisions()` evaluates `If-Match`. `*` matches. A weak tag never matches. Another tag matches when its API version is the one you give and every revision you name equals the tag's. It ignores the digest and any revision you do not name. Check that the header is there first, because a missing header matches nothing.
+
+Compare under the write's lock, in the transaction that writes. A route-bound model holds a revision read before that lock. A second writer can commit between a compare against it and the write, and then both writes pass with one tag. `lockForUpdate()` reads the row and its digest again under the lock:
 
 ```php
+use Illuminate\Support\Facades\DB;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Resources\Schemas\Tags\EntityTagList;
 
-$request->headers->has('If-Match')
-    && (EntityTagList::parse($request->headers->all('If-Match'))
-        ?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision(ConcurrencyRevision::Self)))
-        ?? false);
+$ifMatch = EntityTagList::parse($request->headers->all('If-Match'));
+
+DB::transaction(function () use ($ifMatch, $id, $attributes): void {
+    $place = Place::query()->lockForUpdate()->findOrFail($id);
+
+    abort_unless(
+        $ifMatch?->matchesRevisions(ApiVersion::V2, Revisions::of(own: $place->concurrencyRevision(ConcurrencyRevision::Self))) ?? false,
+        412,
+    );
+
+    $place->update($attributes);
+});
 ```
 
-`matchesWeakly()` evaluates `If-None-Match` against the response's `ETag`. `*` matches. Another tag matches when it equals the `ETag`, digest included, with any `W/` prefix ignored on both sides.
+Compare a named revision after the parent's lock, in the same transaction. `concurrencyRevision($revision)` then runs the order-digest query under that lock:
+
+```php
+DB::transaction(function () use ($ifMatch, $id, $positions): void {
+    $place = Place::query()->lockForUpdate()->findOrFail($id);
+    $order = PlaceRevision::PlaceAssetsOrder;
+
+    abort_unless(
+        $ifMatch?->matchesRevisions(ApiVersion::V2, Revisions::of(null, [$order->value => $place->concurrencyRevision($order)])) ?? false,
+        412,
+    );
+
+    $place->reorderPlaceAssets($positions);
+});
+```
+
+eloquent-concurrency's [Comparing a revision](https://github.com/AryeoHQ/eloquent-concurrency#comparing-a-revision) section explains which member writes wait for that lock. In an api-first endpoint, use its [preconditions](https://github.com/AryeoHQ/api-first#preconditions) instead. A precondition's `guard()` locks the target's rows, compares `If-Match` under that lock, and runs the write only on a match.
+
+`matchesWeakly()` evaluates `If-None-Match` against the response's `ETag`. `*` matches. Another tag matches when it equals the `ETag`, digest included, with any `W/` prefix ignored on both sides. Evaluate `If-None-Match` only against a representation tag, never against a nested index tag, which carries no body digest.
 
 A schema or schema collection must not define `withResponse()`, because the `AsSchema` and `AsSchemaCollection` traits set the `ETag` there. The `SchemaMustNotDefineWithResponse` PHPStan rule reports one that does.
 
