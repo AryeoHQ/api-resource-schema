@@ -192,17 +192,27 @@ The digest is computed after the body is encoded, so it covers nested schemas to
 A schema collection carries only the tag you give it. A nested index takes the API version and its relation's named revision, with no own revision and no digest, so every page carries the same tag:
 
 ```php
+use Illuminate\Support\Facades\DB;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
 
-$tag = EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2);
+[$tag, $page] = DB::transaction(function () use ($place) {
+    DB::statement('set transaction isolation level repeatable read, read only');
 
-return $place->placeAssets()->paginate(15)
-    ->toSchemaCollection(ApiVersion::V2)
-    ->withTag($tag);
+    return [
+        EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
+        $place->placeAssets()->paginate(15),
+    ];
+});
+
+return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
 // ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
 ```
 
-Read the tag before the page. Each statement reads its own snapshot, so a write can commit between the two reads. A tag read first can then only be older than the body. A client that sends it back gets a spurious `412`, never a lost update. A tag read after the page can be newer than the body, and then `If-Match` passes against a state the client never saw.
+Read the tag and the page in one `REPEATABLE READ` transaction. Outside one, each statement reads its own snapshot, so a write can commit between the two reads. The order of the reads does not prevent the failure. Suppose the order is A at the tag read, B at the page read, and A again when the client writes. The tag shows A and the body shows B, so an `If-Match` of A passes against a body the client never saw.
+
+In a `REPEATABLE READ` transaction, every statement reads the snapshot that the first read takes, so the tag and the body show one state. A write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`. A write that later restores that state lets `If-Match` pass, but the client then writes against the order it saw.
+
+`set transaction` must be the transaction's first statement, because PostgreSQL rejects it after any query. Do not open this transaction inside another one, because Laravel then opens a savepoint, and the statement fails there.
 
 ```
 ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"

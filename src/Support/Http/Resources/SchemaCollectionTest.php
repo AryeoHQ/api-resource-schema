@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources;
 
+use Closure;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +45,21 @@ use Tests\TestCase;
 #[CoversTrait(TransformsToSchemaCollection::class)]
 class SchemaCollectionTest extends TestCase
 {
+    /** @var list<string> */
+    protected array $connectionsToTransact = [];
+
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('database.connections.writer', $app['config']->get('database.connections.pgsql'));
+    }
+
+    protected function afterRefreshingDatabase(): void
+    {
+        $this->beforeApplicationDestroyed(function (): void {
+            DB::statement('truncate users, posts, teams, team_user restart identity');
+        });
+    }
+
     #[Test]
     public function it_collects_schema(): void
     {
@@ -143,11 +161,11 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', function () use ($user) {
+        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
             return Posts::make($user->posts)->withTag($tag);
-        });
+        }));
 
         $this->get('posts')->assertOk()->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"');
     }
@@ -157,11 +175,11 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', function () use ($user) {
+        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
             return Posts::make($user->posts()->paginate(1))->withTag($tag);
-        });
+        }));
         $tag = '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"';
 
         $this->get('posts?page=1')->assertJsonPath('meta.current_page', 1)->assertHeader('ETag', $tag);
@@ -173,12 +191,11 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        $posts = new PostCollection($user->posts->all());
-        Route::get('posts', function () use ($user, $posts) {
+        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
             $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
 
-            return $posts->toSchemaCollection(ApiVersion::V2)->withTag($tag);
-        });
+            return (new PostCollection($user->posts()->get()->all()))->toSchemaCollection(ApiVersion::V2)->withTag($tag);
+        }));
 
         $this->get('posts')->assertOk()->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"');
     }
@@ -188,11 +205,7 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         [$moved] = Post::factory()->count(2)->for($user)->create()->all();
-        Route::get('posts', function () use ($user) {
-            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
-
-            return Posts::make($user->posts()->get())->withTag($tag);
-        });
+        $this->routePostsOf($user);
 
         $first = $this->get('posts')->headers->get('ETag');
         $moved->user()->associate(User::factory()->create())->save();
@@ -203,32 +216,43 @@ class SchemaCollectionTest extends TestCase
     }
 
     #[Test]
-    public function a_write_between_the_tag_read_and_the_page_read_leaves_the_tag_older_than_the_body(): void
+    public function a_write_between_the_tag_read_and_the_page_read_shows_in_neither(): void
     {
         $user = User::factory()->create();
         [$moved] = Post::factory()->count(2)->for($user)->create()->all();
         $other = User::factory()->create();
         $before = $user->concurrencyRevision(UserRevision::PostsOrder);
-        Route::get('posts', function () use ($user) {
-            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+        $this->routePostsOf($user);
+        $this->afterTheFirstRead(fn (Connection $writer) => $writer->table('posts')->where('id', $moved->getKey())->update(['user_id' => $other->getKey()]));
 
-            return Posts::make($user->posts()->get())->withTag($tag);
-        });
-        $written = false;
-        DB::listen(function () use (&$written, $moved, $other): void {
-            if (! $written) {
-                $written = true;
-                DB::table('posts')->where('id', $moved->getKey())->update(['user_id' => $other->getKey()]);
-            }
-        });
+        $response = $this->get('posts')->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order='.$before.'"');
 
-        $response = $this->get('posts')->assertJsonCount(1, 'data')->assertHeader('ETag', '"v2.posts_order='.$before.'"');
-
-        $this->assertTrue($written);
         $this->assertFalse(EntityTagList::parse([(string) $response->headers->get('ETag')])?->matchesRevisions(
             ApiVersion::V2,
             Revisions::of(null, ['posts_order' => $user->concurrencyRevision(UserRevision::PostsOrder)]),
         ));
+    }
+
+    #[Test]
+    public function a_write_undone_after_the_page_read_leaves_the_tag_matching_the_body(): void
+    {
+        $user = User::factory()->create();
+        [$moved] = Post::factory()->count(2)->for($user)->create()->all();
+        $other = User::factory()->create();
+        $before = $user->concurrencyRevision(UserRevision::PostsOrder);
+        $titles = $user->posts()->pluck('title')->sort()->values()->all();
+        $this->routePostsOf($user);
+        $this->afterTheFirstRead(fn (Connection $writer) => $writer->table('posts')->where('id', $moved->getKey())->update(['user_id' => $other->getKey()]));
+
+        $response = $this->get('posts')->assertHeader('ETag', '"v2.posts_order='.$before.'"');
+        $this->assertNotSame($before, $user->concurrencyRevision(UserRevision::PostsOrder));
+        DB::table('posts')->where('id', $moved->getKey())->update(['user_id' => $user->getKey()]);
+
+        $this->assertTrue(EntityTagList::parse([(string) $response->headers->get('ETag')])?->matchesRevisions(
+            ApiVersion::V2,
+            Revisions::of(null, ['posts_order' => $user->concurrencyRevision(UserRevision::PostsOrder)]),
+        ));
+        $this->assertSame($titles, $response->collect('data')->pluck('title')->sort()->values()->all());
     }
 
     #[Test]
@@ -238,5 +262,34 @@ class SchemaCollectionTest extends TestCase
         Route::get('users', fn () => new Collection\Schemas\V2\Users(User::query()->get()));
 
         $this->get('users')->assertOk()->assertJsonCount(2, 'data')->assertHeaderMissing('ETag');
+    }
+
+    private function routePostsOf(User $user): void
+    {
+        Route::get('posts', fn () => $this->inOneSnapshot(function () use ($user) {
+            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+
+            return Posts::make($user->posts()->get())->withTag($tag);
+        }));
+    }
+
+    private function inOneSnapshot(Closure $reads): mixed
+    {
+        return DB::transaction(function () use ($reads): mixed {
+            DB::statement('set transaction isolation level repeatable read, read only');
+
+            return $reads();
+        });
+    }
+
+    private function afterTheFirstRead(Closure $write): void
+    {
+        $written = false;
+        DB::listen(function (QueryExecuted $query) use (&$written, $write): void {
+            if (! $written && $query->connectionName !== 'writer' && stripos($query->sql, 'select') === 0) {
+                $written = true;
+                $write(DB::connection('writer'));
+            }
+        });
     }
 }
