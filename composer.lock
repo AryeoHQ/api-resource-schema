@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "545e78d763ba3b4523d4e4b660b8d99592e1a86a"
+                "reference": "a12396198e14eb743bdffd3787ff60a4e1ef9fb7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/545e78d763ba3b4523d4e4b660b8d99592e1a86a",
-                "reference": "545e78d763ba3b4523d4e4b660b8d99592e1a86a",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/a12396198e14eb743bdffd3787ff60a4e1ef9fb7",
+                "reference": "a12396198e14eb743bdffd3787ff60a4e1ef9fb7",
                 "shasum": ""
             },
             "require": {
@@ -98,7 +98,7 @@
                 "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-11-01t1728-digest-migration-m1",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-11-02T02:22:14+00:00"
+            "time": "2026-11-02T04:43:23+00:00"
         },
         {
             "name": "aryeo/tooling-laravel",
