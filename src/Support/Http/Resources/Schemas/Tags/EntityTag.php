@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Tags;
 
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use LogicException;
 use Stringable;
@@ -18,7 +19,7 @@ final readonly class EntityTag implements Stringable
 
     private const string DIGEST = '/^[0-9a-f]{32}$/D';
 
-    private const string REVISION = '/^(0|[1-9][0-9]*)$/D';
+    private const string REVISION = '/^[0-9a-f]{32}$/D';
 
     private const string TOKEN = '/^[\x21\x23-\x2B\x2D\x2F-\x3C\x3E-\x7E]+$/D';
 
@@ -36,22 +37,30 @@ final readonly class EntityTag implements Stringable
 
     public static function forRepresentation(Revisioned $resource, Version $api, string $body): null|self
     {
-        $revisions = $resource->concurrencyRevisions();
+        $own = $resource->concurrencyRevisions()?->own;
 
-        if ($revisions === null || preg_match(self::TOKEN, (string) $api->value) !== 1) {
+        if ($own === null || preg_match(self::TOKEN, (string) $api->value) !== 1) {
             return null;
         }
 
-        return new self((string) $api->value, $revisions, hash(self::ALGORITHM, $body));
+        return new self((string) $api->value, Revisions::of($own), hash(self::ALGORITHM, $body));
     }
 
     public static function forNamedRevision(Revisioned $owner, NamesConcurrencyRevision $revision, Version $api): self
     {
-        $value = $owner->concurrencyRevisions()?->get($revision) ?? throw new LogicException(
-            sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $owner::class),
+        throw_unless(
+            preg_match(self::TOKEN, (string) $api->value) === 1,
+            InvalidArgumentException::class,
+            sprintf('An entity tag for API version [%s] is malformed.', $api->value),
         );
 
-        return new self((string) $api->value, Revisions::of(null, [(string) $revision->value => $value]), null);
+        throw_if(
+            $owner instanceof Model && ! $owner->exists,
+            LogicException::class,
+            sprintf('A nested index tag needs an owner that exists, and this [%s] does not.', $owner::class),
+        );
+
+        return new self((string) $api->value, Revisions::of(null, [(string) $revision->value => $owner->concurrencyRevision($revision)]), null);
     }
 
     public static function parse(string $value): null|self
@@ -62,26 +71,24 @@ final readonly class EntityTag implements Stringable
 
         $segments = explode('.', $matches[1]);
         $api = array_shift($segments);
+        $own = null;
         $named = [];
         $digest = null;
 
-        $own = self::revision($segments[0] ?? '');
-
-        if ($own !== null) {
-            array_shift($segments);
-            $digest = array_pop($segments);
-        }
-
-        foreach ($segments as $segment) {
-            [$name, $revision] = array_pad(explode('=', $segment, 2), 2, '');
+        if (count($segments) === 2 && self::revision($segments[0]) !== null && preg_match(self::DIGEST, $segments[1]) === 1) {
+            [$own, $digest] = $segments;
+        } elseif (count($segments) === 1) {
+            [$name, $revision] = array_pad(explode('=', $segments[0], 2), 2, '');
 
             $parsed = self::revision($revision);
 
-            if ($parsed === null || array_key_exists($name, $named)) {
+            if ($parsed === null) {
                 return null;
             }
 
             $named[$name] = $parsed;
+        } else {
+            return null;
         }
 
         try {
@@ -98,7 +105,7 @@ final readonly class EntityTag implements Stringable
         $segments = [$this->api];
 
         if ($this->revisions->own !== null) {
-            $segments[] = (string) $this->revisions->own;
+            $segments[] = $this->revisions->own;
         }
 
         foreach ($this->revisions->named as $name => $revision) {
@@ -112,11 +119,9 @@ final readonly class EntityTag implements Stringable
         return '"'.implode('.', $segments).'"';
     }
 
-    private static function revision(string $value): null|int
+    private static function revision(string $value): null|string
     {
-        $revision = (int) $value;
-
-        return preg_match(self::REVISION, $value) === 1 && (string) $revision === $value ? $revision : null;
+        return preg_match(self::REVISION, $value) === 1 ? $value : null;
     }
 
     private static function isWellFormed(string $api, Revisions $revisions, null|string $digest): bool

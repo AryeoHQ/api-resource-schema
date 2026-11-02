@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Tests;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench;
 use Support\Http\Resources\Schemas\Providers\Provider;
 
 abstract class TestCase extends Testbench\TestCase
 {
+    use RefreshDatabase;
+
     protected $enablesPackageDiscoveries = true;
 
     protected function getPackageProviders($app): array
@@ -20,28 +23,27 @@ abstract class TestCase extends Testbench\TestCase
         ];
     }
 
-    protected function defineDatabaseMigrations(): void
+    protected function defineDatabaseMigrationsAfterDatabaseRefreshed(): void
     {
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name');
-            $table->string('biography')->nullable();
+            $table->text('biography')->nullable();
             $table->text('email');
             $table->string('username');
             $table->date('date_of_birth')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            $table->concurrencyRevision();
-            $table->namedConcurrencyRevision('posts_order');
         });
 
         Schema::create('posts', function (Blueprint $table): void {
             $table->id();
             $table->string('title');
-            $table->integer('rating')->nullable();
+            $table->double('rating')->nullable();
             $table->foreignId('user_id')->nullable();
+            $table->integer('position')->default(0);
             $table->timestamps();
         });
 

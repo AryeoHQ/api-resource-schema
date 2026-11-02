@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
 use Support\Http\Resources\Schemas\Attributes\CollectedBy\Exceptions\NotDefined;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
@@ -25,6 +26,7 @@ use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
+use Tests\Fixtures\Support\Users\CountedUser;
 use Tests\Fixtures\Support\Users\Schemas;
 use Tests\Fixtures\Support\Users\Schemas\Dotted\User as DottedUser;
 use Tests\Fixtures\Support\Users\User;
@@ -46,7 +48,7 @@ class SchemaTest extends TestCase
 {
     use ConditionallyLoadsAttributesTestCases;
 
-    private const array WITHOUT_REVISIONS = ['id', 'first_name', 'middle_name', 'last_name', 'biography', 'date_of_birth', 'deleted_at'];
+    private const array SELECTED_COLUMNS = ['id', 'first_name', 'middle_name', 'last_name', 'biography', 'date_of_birth', 'deleted_at'];
 
     #[Test]
     public function to_array(): void
@@ -123,12 +125,12 @@ class SchemaTest extends TestCase
     #[Test]
     public function a_revisioned_schema_response_carries_an_entity_tag(): void
     {
-        User::factory()->state(['first_name' => 'John', 'last_name' => 'Doe', 'posts_order_concurrency_revision' => 4])->create();
+        User::factory()->state(['first_name' => 'John', 'last_name' => 'Doe'])->create();
         Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
 
         $response = $this->get('user');
 
-        $response->assertHeader('ETag', '"v2.1.posts_order=4.'.hash('xxh128', (string) $response->baseResponse->getContent()).'"');
+        $response->assertHeader('ETag', '"v2.'.User::query()->sole()->concurrencyRevision(ConcurrencyRevision::Self).'.'.hash('xxh128', (string) $response->baseResponse->getContent()).'"');
         $this->assertSame(json_encode(['data' => ['first_name' => 'John', 'last_name' => 'Doe', 'biography' => null]]), $response->baseResponse->getContent());
     }
 
@@ -150,23 +152,32 @@ class SchemaTest extends TestCase
     }
 
     #[Test]
-    public function a_schema_response_without_its_revision_columns_carries_no_entity_tag(): void
+    public function a_schema_response_read_with_a_select_list_carries_no_entity_tag(): void
     {
         User::factory()->create();
-        Route::get('user', fn () => User::query()->select(self::WITHOUT_REVISIONS)->sole()->toSchema(ApiVersion::V2));
+        Route::get('user', fn () => User::query()->select(self::SELECTED_COLUMNS)->sole()->toSchema(ApiVersion::V2));
 
         $this->get('user')->assertOk()->assertHeaderMissing('ETag');
     }
 
     #[Test]
-    public function a_schema_response_without_its_revision_columns_carries_no_entity_tag_when_missing_attributes_are_prevented(): void
+    public function a_schema_response_read_with_a_select_list_carries_no_entity_tag_when_missing_attributes_are_prevented(): void
     {
         Model::preventAccessingMissingAttributes();
         $this->beforeApplicationDestroyed(fn () => Model::preventAccessingMissingAttributes(false));
         User::factory()->create();
-        Route::get('user', fn () => User::query()->select(self::WITHOUT_REVISIONS)->sole()->toSchema(ApiVersion::V2));
+        Route::get('user', fn () => User::query()->select(self::SELECTED_COLUMNS)->sole()->toSchema(ApiVersion::V2));
 
         $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_schema_response_of_a_model_with_a_with_count_property_carries_no_entity_tag(): void
+    {
+        Post::factory()->count(2)->for(User::factory()->create())->create();
+        Route::get('user', fn () => CountedUser::query()->sole()->toSchema(ApiVersion::V2));
+
+        $this->get('user')->assertOk()->assertJsonPath('data.posts_count', 2)->assertHeaderMissing('ETag');
     }
 
     #[Test]
@@ -181,7 +192,7 @@ class SchemaTest extends TestCase
     #[Test]
     public function the_entity_tag_digest_follows_the_body(): void
     {
-        User::factory()->state(['first_name' => 'John', 'concurrency_revision' => 17])->create();
+        User::factory()->state(['first_name' => 'John'])->create();
         Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
 
         $first = $this->get('user')->headers->get('ETag');
@@ -191,5 +202,35 @@ class SchemaTest extends TestCase
 
         $this->assertSame($first, $repeated);
         $this->assertNotSame($first, $changed);
+    }
+
+    #[Test]
+    public function the_entity_tag_own_revision_follows_a_raw_write_to_an_unrendered_column(): void
+    {
+        User::factory()->create();
+        Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
+
+        $first = $this->get('user');
+        DB::table('users')->update(['email' => 'changed@example.com']);
+        $changed = $this->get('user');
+
+        $this->assertSame($first->baseResponse->getContent(), $changed->baseResponse->getContent());
+        $this->assertNotSame($first->headers->get('ETag'), $changed->headers->get('ETag'));
+        $changed->assertHeader('ETag', '"v2.'.User::query()->sole()->concurrencyRevision(ConcurrencyRevision::Self).'.'.hash('xxh128', (string) $changed->baseResponse->getContent()).'"');
+    }
+
+    #[Test]
+    public function the_entity_tag_ignores_a_change_to_the_posts(): void
+    {
+        $user = User::factory()->create();
+        $post = Post::factory()->for($user)->create();
+        Route::get('user', fn () => User::query()->sole()->toSchema(ApiVersion::V2));
+
+        $first = $this->get('user')->headers->get('ETag');
+        $post->delete();
+        Post::factory()->count(2)->for($user)->create();
+        $changed = $this->get('user')->headers->get('ETag');
+
+        $this->assertSame($first, $changed);
     }
 }
