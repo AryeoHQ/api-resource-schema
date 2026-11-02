@@ -202,7 +202,7 @@ use Support\Http\Resources\Schemas\Tags\Snapshot;
 
 [$tag, $page] = Snapshot::read(fn (): array => [
     EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
-    $place->placeAssets()->paginate(15),
+    $place->placeAssets()->cursorPaginate($size),
 ], $place->getConnection());
 
 return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
