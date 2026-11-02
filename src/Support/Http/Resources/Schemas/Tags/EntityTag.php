@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Support\Http\Resources\Schemas\Tags;
 
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use LogicException;
 use Stringable;
 use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
@@ -46,6 +48,18 @@ final readonly class EntityTag implements Stringable
 
     public static function forNamedRevision(Revisioned $owner, NamesConcurrencyRevision $revision, Version $api): self
     {
+        throw_unless(
+            preg_match(self::TOKEN, (string) $api->value) === 1,
+            InvalidArgumentException::class,
+            sprintf('An entity tag for API version [%s] is malformed.', $api->value),
+        );
+
+        throw_if(
+            $owner instanceof Model && ! $owner->exists,
+            LogicException::class,
+            sprintf('A nested index tag needs an owner that exists, and this [%s] does not.', $owner::class),
+        );
+
         return new self((string) $api->value, Revisions::of(null, [(string) $revision->value => $owner->concurrencyRevision($revision)]), null);
     }
 
@@ -63,19 +77,18 @@ final readonly class EntityTag implements Stringable
 
         if (count($segments) === 2 && self::revision($segments[0]) !== null && preg_match(self::DIGEST, $segments[1]) === 1) {
             [$own, $digest] = $segments;
-            $segments = [];
-        }
-
-        foreach ($segments as $segment) {
-            [$name, $revision] = array_pad(explode('=', $segment, 2), 2, '');
+        } elseif (count($segments) === 1) {
+            [$name, $revision] = array_pad(explode('=', $segments[0], 2), 2, '');
 
             $parsed = self::revision($revision);
 
-            if ($parsed === null || array_key_exists($name, $named)) {
+            if ($parsed === null) {
                 return null;
             }
 
             $named[$name] = $parsed;
+        } else {
+            return null;
         }
 
         try {

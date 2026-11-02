@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Resources\Schemas\Tags;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -12,6 +13,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
+use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Provides\HasConcurrencyRevisions;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Tests\Fixtures\Support\Posts\Post;
@@ -144,14 +146,52 @@ class EntityTagTest extends TestCase
     }
 
     #[Test]
+    public function it_changes_the_nested_index_tag_but_not_the_representation_tag_when_the_posts_reorder(): void
+    {
+        $user = User::factory()->create();
+        [$first, $second] = Post::factory()->count(2)->for($user)->sequence(['position' => 1], ['position' => 2])->create()->all();
+        $nested = (string) EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+        $representation = (string) EntityTag::forRepresentation(User::query()->findOrFail($user->getKey()), ApiVersion::V2, '{}');
+
+        DB::table('posts')->where('id', $first->getKey())->update(['position' => 3]);
+
+        $this->assertSame([$second->getKey(), $first->getKey()], $user->posts()->orderBy('position')->pluck('id')->all());
+        $this->assertNotSame($nested, (string) EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2));
+        $this->assertSame($representation, (string) EntityTag::forRepresentation(User::query()->findOrFail($user->getKey()), ApiVersion::V2, '{}'));
+    }
+
+    #[Test]
+    public function it_refuses_a_nested_index_tag_for_an_owner_that_was_never_saved(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('needs an owner that exists');
+
+        EntityTag::forNamedRevision(User::factory()->make(), UserRevision::PostsOrder, ApiVersion::V2);
+    }
+
+    #[Test]
+    public function it_refuses_a_nested_index_tag_for_an_owner_that_was_deleted(): void
+    {
+        $owner = User::factory()->create();
+        Post::factory()->for($owner)->create();
+        $owner->forceDelete();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('needs an owner that exists');
+
+        EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, ApiVersion::V2);
+    }
+
+    #[Test]
     public function it_refuses_a_nested_index_tag_for_a_revision_the_owner_does_not_declare(): void
     {
         $owner = new class extends Model implements Revisioned
         {
             use HasConcurrencyRevisions;
         };
+        $owner->exists = true;
 
-        $this->expectException(LogicException::class);
+        $this->expectException(UndeclaredConcurrencyRevision::class);
 
         EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, ApiVersion::V2);
     }
@@ -174,6 +214,20 @@ class EntityTagTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, DottedApiVersion::V2Point1);
+    }
+
+    #[Test]
+    public function it_refuses_an_api_version_that_is_not_a_token_before_it_reads_the_named_revision(): void
+    {
+        $owner = User::factory()->create();
+        DB::enableQueryLog();
+
+        try {
+            EntityTag::forNamedRevision($owner, UserRevision::PostsOrder, DottedApiVersion::V2Point1);
+            $this->fail('A dotted API version was accepted.');
+        } catch (InvalidArgumentException) {
+            $this->assertSame([], DB::getQueryLog());
+        }
     }
 
     #[Test]
@@ -245,6 +299,7 @@ class EntityTagTest extends TestCase
             'empty segment' => ['"v2..posts_order='.self::ORDER.'"'],
             'self by name' => ['"v2.self='.self::OWN.'"'],
             'repeated name' => ['"v2.posts_order='.self::ORDER.'.posts_order='.self::OWN.'"'],
+            'two named revisions' => ['"v2.posts_order='.self::ORDER.'.notes_order='.self::OWN.'"'],
             'trailing segment' => ['"v2.'.self::OWN.'.'.self::DIGEST.'.posts_order='.self::ORDER.'"'],
             'list' => ['"v2.posts_order='.self::ORDER.'", "v2.posts_order='.self::OWN.'"'],
             'line feed after the api version' => ["\"v2\n.posts_order=".self::ORDER.'"'],

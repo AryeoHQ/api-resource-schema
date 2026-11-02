@@ -181,7 +181,7 @@ ETag: "v2.3f1c2b4a5d6e7f8091a2b3c4d5e6f708.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 | Own revision | An observed column of the subject row changes, whoever writes it | `If-Match`, when the target compares the own revision |
 | Digest | Any byte of the body changes | `If-None-Match` only |
 
-A representation tag carries no named revision, so a change to a relation, such as its order, leaves the tag alone. A schema response gets no `ETag` in these cases:
+A representation tag carries no named revision, so a change to a relation, such as its order, leaves the own revision alone. The digest still follows the rendered body, so a change to a relation the body renders changes the digest. A schema response gets no `ETag` in these cases:
 
 - The model is not `Revisioned`.
 - The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the query that read it set a select list, such as `select(['id', 'name'])`. eloquent-concurrency selects the own revision only beside a query with no select list.
@@ -194,11 +194,15 @@ A schema collection carries only the tag you give it. A nested index takes the A
 ```php
 use Support\Http\Resources\Schemas\Tags\EntityTag;
 
+$tag = EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2);
+
 return $place->placeAssets()->paginate(15)
     ->toSchemaCollection(ApiVersion::V2)
-    ->withTag(EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2));
+    ->withTag($tag);
 // ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
 ```
+
+Read the tag before the page. Each statement reads its own snapshot, so a write can commit between the two reads. A tag read first can then only be older than the body. A client that sends it back gets a spurious `412`, never a lost update. A tag read after the page can be newer than the body, and then `If-Match` passes against a state the client never saw.
 
 ```
 ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
@@ -207,9 +211,9 @@ ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
        └ API version
 ```
 
-`EntityTag::forNamedRevision()` computes the named revision with the owner's `concurrencyRevision($revision)`, which runs one order-digest query. The owner must declare the revision with `#[NamedConcurrencyRevision]` on its relation method. Otherwise eloquent-concurrency throws `UndeclaredConcurrencyRevision`, a `LogicException`.
+`EntityTag::forNamedRevision()` computes the named revision with the owner's `concurrencyRevision($revision)`, which runs one order-digest query. The owner must exist, or it throws a `LogicException`. The owner must declare the revision with `#[NamedConcurrencyRevision]` on its relation method. Otherwise eloquent-concurrency throws `UndeclaredConcurrencyRevision`, a `LogicException`.
 
-An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-concurrency`, and the digest. `EntityTag::parse()` reads `"<api>.<own>.<digest>"` when the tag has exactly three segments and the last two are hex. It reads `"<api>.<name>=<revision>"` otherwise. It returns `null` for a weak, malformed, or listed tag, and for a revision that is not 32 lowercase hex characters. It also returns `null` for a named revision whose name is not lowercase letters, digits, and underscores starting with a letter, or is `self`.
+An `EntityTag` holds the API version, a `Revisions` value from `aryeo/eloquent-concurrency`, and the digest. `EntityTag::parse()` reads `"<api>.<own>.<digest>"` when the tag has exactly three segments and the last two are hex. It reads `"<api>.<name>=<revision>"` when the tag has exactly two segments, and returns `null` for any other count, so a tag carries one named revision at most. It returns `null` for a weak, malformed, or listed tag, and for a revision that is not 32 lowercase hex characters. It also returns `null` for a named revision whose name is not lowercase letters, digits, and underscores starting with a letter, or is `self`.
 
 `EntityTagList::parse()` reads an `If-Match` or `If-None-Match` field, following RFC 9110. It takes every line of the header and joins them. It returns `null` for a malformed field, so a malformed field matches nothing:
 

@@ -12,12 +12,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Support\Database\Eloquent\Concurrency\Attributes\NamedConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Database\Eloquent\Concurrency\Provides\HasConcurrencyRevisions;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchema;
 use Support\Http\Resources\Schemas\Contracts\Schemable;
+use Tests\Fixtures\Support\Concurrency\PositionedConcurrencyRevision;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Teams\Team;
 use Tests\Fixtures\Support\TeamUser\TeamUser;
@@ -50,7 +50,7 @@ class User extends Model implements Revisioned, Schemable
     /**
      * @return HasMany<Post, $this>
      */
-    #[NamedConcurrencyRevision(UserRevision::PostsOrder)]
+    #[PositionedConcurrencyRevision(UserRevision::PostsOrder)]
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);

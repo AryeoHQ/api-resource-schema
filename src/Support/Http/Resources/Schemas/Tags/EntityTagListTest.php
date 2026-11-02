@@ -198,6 +198,12 @@ class EntityTagListTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_match_a_tag_with_two_named_revisions(): void
+    {
+        $this->assertFalse($this->list('"v2.posts_order='.self::ORDER.'.notes_order='.self::OTHER.'"')->matchesRevisions(ApiVersion::V2, Revisions::of(null, ['posts_order' => self::ORDER])));
+    }
+
+    #[Test]
     public function it_matches_any_tag_weakly_with_a_wildcard(): void
     {
         $this->assertTrue($this->list('*')->matchesWeakly('"v2.'.self::OWN.'.'.self::DIGEST.'"'));

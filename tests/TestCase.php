@@ -43,6 +43,7 @@ abstract class TestCase extends Testbench\TestCase
             $table->string('title');
             $table->double('rating')->nullable();
             $table->foreignId('user_id')->nullable();
+            $table->integer('position')->default(0);
             $table->timestamps();
         });
 

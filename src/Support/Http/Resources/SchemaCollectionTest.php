@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Support\Http\Resources;
 
 use Illuminate\Pagination\AbstractPaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Resources\Schemas\Attributes\Collects\Collects;
 use Support\Http\Resources\Schemas\Attributes\Collects\Exceptions\NotDefined;
 use Support\Http\Resources\Schemas\Attributes\UseSchemaCollection\UseSchemaCollection;
@@ -17,6 +19,7 @@ use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Support\Http\Resources\Schemas\Tags\EntityTagList;
 use Tests\Fixtures\Support\Posts\Collection\Posts as PostCollection;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Posts\Schemas\Posts;
@@ -140,9 +143,11 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', fn () => Posts::make($user->posts)->withTag(
-            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
-        ));
+        Route::get('posts', function () use ($user) {
+            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+
+            return Posts::make($user->posts)->withTag($tag);
+        });
 
         $this->get('posts')->assertOk()->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"');
     }
@@ -152,9 +157,11 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
-        Route::get('posts', fn () => Posts::make($user->posts()->paginate(1))->withTag(
-            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
-        ));
+        Route::get('posts', function () use ($user) {
+            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+
+            return Posts::make($user->posts()->paginate(1))->withTag($tag);
+        });
         $tag = '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"';
 
         $this->get('posts?page=1')->assertJsonPath('meta.current_page', 1)->assertHeader('ETag', $tag);
@@ -167,9 +174,11 @@ class SchemaCollectionTest extends TestCase
         $user = User::factory()->create();
         Post::factory()->count(2)->for($user)->create();
         $posts = new PostCollection($user->posts->all());
-        Route::get('posts', fn () => $posts->toSchemaCollection(ApiVersion::V2)->withTag(
-            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
-        ));
+        Route::get('posts', function () use ($user, $posts) {
+            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+
+            return $posts->toSchemaCollection(ApiVersion::V2)->withTag($tag);
+        });
 
         $this->get('posts')->assertOk()->assertJsonCount(2, 'data')->assertHeader('ETag', '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"');
     }
@@ -179,9 +188,11 @@ class SchemaCollectionTest extends TestCase
     {
         $user = User::factory()->create();
         [$moved] = Post::factory()->count(2)->for($user)->create()->all();
-        Route::get('posts', fn () => Posts::make($user->posts()->get())->withTag(
-            EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2)
-        ));
+        Route::get('posts', function () use ($user) {
+            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+
+            return Posts::make($user->posts()->get())->withTag($tag);
+        });
 
         $first = $this->get('posts')->headers->get('ETag');
         $moved->user()->associate(User::factory()->create())->save();
@@ -189,6 +200,35 @@ class SchemaCollectionTest extends TestCase
 
         $this->assertNotSame($first, $changed->headers->get('ETag'));
         $changed->assertHeader('ETag', '"v2.posts_order='.$user->concurrencyRevision(UserRevision::PostsOrder).'"');
+    }
+
+    #[Test]
+    public function a_write_between_the_tag_read_and_the_page_read_leaves_the_tag_older_than_the_body(): void
+    {
+        $user = User::factory()->create();
+        [$moved] = Post::factory()->count(2)->for($user)->create()->all();
+        $other = User::factory()->create();
+        $before = $user->concurrencyRevision(UserRevision::PostsOrder);
+        Route::get('posts', function () use ($user) {
+            $tag = EntityTag::forNamedRevision($user, UserRevision::PostsOrder, ApiVersion::V2);
+
+            return Posts::make($user->posts()->get())->withTag($tag);
+        });
+        $written = false;
+        DB::listen(function () use (&$written, $moved, $other): void {
+            if (! $written) {
+                $written = true;
+                DB::table('posts')->where('id', $moved->getKey())->update(['user_id' => $other->getKey()]);
+            }
+        });
+
+        $response = $this->get('posts')->assertJsonCount(1, 'data')->assertHeader('ETag', '"v2.posts_order='.$before.'"');
+
+        $this->assertTrue($written);
+        $this->assertFalse(EntityTagList::parse([(string) $response->headers->get('ETag')])?->matchesRevisions(
+            ApiVersion::V2,
+            Revisions::of(null, ['posts_order' => $user->concurrencyRevision(UserRevision::PostsOrder)]),
+        ));
     }
 
     #[Test]
