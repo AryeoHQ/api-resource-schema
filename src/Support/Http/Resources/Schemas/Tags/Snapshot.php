@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Resources\Schemas\Tags;
 
 use Closure;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -16,9 +17,9 @@ final class Snapshot
      * @param  Closure(): TResult  $reads
      * @return TResult
      */
-    public static function read(Closure $reads): mixed
+    public static function read(Closure $reads, null|string|Connection $connection = null): mixed
     {
-        $connection = DB::connection();
+        $connection = $connection instanceof Connection ? $connection : DB::connection($connection);
 
         throw_if(
             $connection->transactionLevel() > 0,

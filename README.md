@@ -185,7 +185,7 @@ A representation tag carries no named revision, so a change to a relation, such 
 
 - The model is not `Revisioned`.
 - The model's `concurrencyRevisions()` returns `null`. It does so when the model does not exist, such as before it is saved, and when the read that loaded it carries no digest. Nothing reports why the `ETag` is missing. eloquent-concurrency selects the digest only beside a query whose select list is empty. Its [Limits](https://github.com/AryeoHQ/eloquent-concurrency#limits) section describes each of these reads, and none of them carries a digest:
-  - A model with a `$withCount` property, and the parent of a `withCount()` read.
+  - A model with a `$withCount` property, and a subject loaded with `->withCount(...)`, such as `Place::withCount('placeAssets')->findOrFail($id)`. A controller that loads its subject this way returns no `ETag`.
   - A select list the caller sets: any `select()`, even `select('*')`, and `find($id, ['id'])`. A join read that selects a joined column sets one.
   - A `fromSub()` read, and a union with a side that carries no digest.
   - `Collection::fresh()` and queue restoration, which bypass global scopes. Call `refresh()` on a model that needs a tag.
@@ -203,7 +203,7 @@ use Support\Http\Resources\Schemas\Tags\Snapshot;
 [$tag, $page] = Snapshot::read(fn (): array => [
     EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
     $place->placeAssets()->paginate(15),
-]);
+], $place->getConnection());
 
 return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
 // ETag: "v2.place_assets_order=a1b2c3d4e5f60718293a4b5c6d7e8f90"
@@ -213,7 +213,7 @@ Read the tag and the page in one `Snapshot::read()` call. It runs the closure in
 
 In a `REPEATABLE READ` transaction, every statement reads the snapshot that the first read takes, so the tag and the body show one state. A write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`. A write that later restores that state lets `If-Match` pass, but the client then writes against the order it saw.
 
-`Snapshot::read()` opens its transaction on the default connection, so the closure must read through that connection. It issues `set transaction` as the transaction's first statement, because PostgreSQL rejects it after any query and inside a savepoint. It therefore throws a `LogicException` when the connection is already in a transaction.
+`Snapshot::read()` opens its transaction on the connection you pass, as a `Connection` or its name, and on the default connection when you pass none. Pass the owner's connection, so the order digest and the page read in that transaction. The closure must read through that connection. A read on another connection runs outside the snapshot, and nothing reports it. `Snapshot::read()` issues `set transaction` as the transaction's first statement, because PostgreSQL rejects it after any query and inside a savepoint. It therefore throws a `LogicException` when that connection is already in a transaction. A transaction on another connection does not stop it.
 
 `RefreshDatabase` runs each test inside a transaction, so a feature test that uses it cannot call an endpoint that reads a snapshot. Use `DatabaseTruncation` in that test class instead. Alternatively, set `$connectionsToTransact` to `[]` and clear the tables yourself.
 

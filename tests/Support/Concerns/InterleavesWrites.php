@@ -15,8 +15,10 @@ trait InterleavesWrites
 
     protected function afterRefreshingDatabase(): void
     {
-        DB::purge('writer');
-        config()->set('database.connections.writer', config('database.connections.'.DB::getDefaultConnection()));
+        foreach (['writer', 'secondary'] as $name) {
+            DB::purge($name);
+            config()->set('database.connections.'.$name, config('database.connections.'.DB::getDefaultConnection()));
+        }
 
         $this->beforeApplicationDestroyed(function (): void {
             DB::statement('truncate users, posts, teams, team_user restart identity');

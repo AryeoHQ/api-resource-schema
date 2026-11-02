@@ -32,6 +32,44 @@ class SnapshotTest extends TestCase
     }
 
     #[Test]
+    public function its_reads_on_the_connection_it_is_given_see_one_snapshot(): void
+    {
+        Post::factory()->count(2)->create();
+        $this->afterTheFirstRead(fn (Connection $writer) => $writer->table('posts')->delete());
+        $owner = (new Post)->setConnection('secondary');
+
+        $counts = Snapshot::read(
+            fn (): array => [$owner->newQuery()->count(), $owner->newQuery()->count()],
+            $owner->getConnection(),
+        );
+
+        $this->assertSame([2, 2], $counts);
+        $this->assertSame(0, Post::query()->count());
+    }
+
+    #[Test]
+    public function a_transaction_on_another_connection_does_not_block_it(): void
+    {
+        Post::factory()->count(2)->create();
+
+        $count = DB::transaction(fn (): int => Snapshot::read(
+            fn (): int => DB::connection('secondary')->table('posts')->count(),
+            'secondary',
+        ));
+
+        $this->assertSame(2, $count);
+    }
+
+    #[Test]
+    public function it_refuses_to_read_inside_a_transaction_on_the_connection_it_is_given(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('the [secondary] connection is already in one');
+
+        DB::connection('secondary')->transaction(fn (): null => Snapshot::read(fn (): null => null, 'secondary'));
+    }
+
+    #[Test]
     public function its_reads_cannot_write(): void
     {
         Post::factory()->create();
