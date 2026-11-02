@@ -48,13 +48,11 @@ class SchemaCollectionTest extends TestCase
     /** @var list<string> */
     protected array $connectionsToTransact = [];
 
-    protected function defineEnvironment($app): void
-    {
-        $app['config']->set('database.connections.writer', $app['config']->get('database.connections.pgsql'));
-    }
-
     protected function afterRefreshingDatabase(): void
     {
+        DB::purge('writer');
+        config()->set('database.connections.writer', config('database.connections.'.DB::getDefaultConnection()));
+
         $this->beforeApplicationDestroyed(function (): void {
             DB::statement('truncate users, posts, teams, team_user restart identity');
         });
