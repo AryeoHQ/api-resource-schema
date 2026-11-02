@@ -30,7 +30,7 @@ abstract class TestCase extends Testbench\TestCase
             $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name');
-            $table->string('biography')->nullable();
+            $table->text('biography')->nullable();
             $table->text('email');
             $table->string('username');
             $table->date('date_of_birth')->nullable();
