@@ -10,6 +10,8 @@ use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Attributes\UseSchemaCollection\UseSchemaCollection;
 use Support\Http\Resources\Schemas\Contracts\SchemableCollection;
+use Tests\Fixtures\Tooling\PhpStan\Schemables\CollectedByWithMissingVersion;
+use Tests\Fixtures\Tooling\PhpStan\Versions\ApiVersion;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -37,7 +39,7 @@ class UseSchemaMustHaveMatchingUseSchemaCollectionTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Schemables/CollectedByWithMissingVersion.php')], [
             [
-                '['.class_basename(SchemableCollection::class).'] is missing #['.class_basename(UseSchemaCollection::class).'] for version [v1] declared by [CollectedByWithMissingVersion].',
+                '['.class_basename(SchemableCollection::class).'] is missing #['.class_basename(UseSchemaCollection::class).'] for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V1->name.'] declared by ['.class_basename(CollectedByWithMissingVersion::class).'].',
                 14,
             ],
         ]);

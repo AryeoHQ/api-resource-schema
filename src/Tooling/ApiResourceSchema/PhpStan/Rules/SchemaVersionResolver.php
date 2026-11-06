@@ -5,16 +5,30 @@ declare(strict_types=1);
 namespace Tooling\ApiResourceSchema\PhpStan\Rules;
 
 use Illuminate\Support\Collection;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\ComplexType;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\IntersectionType;
+use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\NullableType;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassLike;
+use PhpParser\Node\UnionType;
 use PhpParser\NodeFinder;
 use PhpParser\Parser;
+use PHPStan\Reflection\AttributeReflection;
+use PHPStan\Type\Constant\ConstantStringType;
 use PHPStan\Type\ObjectType;
+use PHPStan\Type\Type;
 use Support\Http\Resources\Schemas\Attributes\Collects\Collects;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Attributes\UseSchemaCollection\UseSchemaCollection;
 use Support\Http\Resources\Schemas\Attributes\Version\Version;
+use Support\Http\Resources\Schemas\Fields\Attributes\RepresentedBy\RepresentedBy;
 
 class SchemaVersionResolver
 {
@@ -26,7 +40,7 @@ class SchemaVersionResolver
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, int|string>
+     * @return \Illuminate\Support\Collection<int, string>
      */
     public function modelVersions(Class_ $node): Collection
     {
@@ -37,19 +51,58 @@ class SchemaVersionResolver
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, int|string>
+     * @return Collection<int, string>
+     */
+    public function representedByTargets(string $class): Collection
+    {
+        return $this->attributeClasses($class, RepresentedBy::class, 'versioned');
+    }
+
+    public function versionOf(string $class): null|string
+    {
+        return $this->resolveVersionFromSchema($class);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public function schemableVersions(string $class): Collection
+    {
+        return $this->attributeClasses($class, UseSchema::class, 'schema')
+            ->map(fn (string $schema) => $this->resolveVersionFromSchema($schema))
+            ->whereNotNull()
+            ->values();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function typeClassNames(Identifier|Name|ComplexType $type): array
+    {
+        return match (true) {
+            $type instanceof Name => [$type->toString()],
+            $type instanceof NullableType => $this->typeClassNames($type->type),
+            $type instanceof UnionType, $type instanceof IntersectionType => collect($type->types)
+                ->flatMap(fn (Identifier|Name|IntersectionType $inner): array => $this->typeClassNames($inner))
+                ->all(),
+            default => [],
+        };
+    }
+
+    public function schemaCollectionVersionOf(string $class): null|string
+    {
+        return $this->resolveVersionFromSchemaCollection($class);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, string>
      */
     public function collectionVersions(string $collectionClass): Collection
     {
-        $collectionReflection = (new ObjectType($collectionClass))->getClassReflection();
-
-        return match ($collectionReflection === null) {
-            true => collect(),
-            false => collect($collectionReflection->getNativeReflection()->getAttributes(UseSchemaCollection::class))
-                ->map(fn (\ReflectionAttribute $attribute) => $this->resolveVersionFromSchemaCollection($attribute->newInstance()->schemaCollection))
-                ->whereNotNull()
-                ->values(),
-        };
+        return $this->attributeClasses($collectionClass, UseSchemaCollection::class, 'schemaCollection')
+            ->map(fn (string $schemaCollection) => $this->resolveVersionFromSchemaCollection($schemaCollection))
+            ->whereNotNull()
+            ->values();
     }
 
     public function collectedByClass(Class_ $node): null|string
@@ -65,7 +118,7 @@ class SchemaVersionResolver
 
         $value = $attr->args[0]->value;
 
-        return match ($value instanceof ClassConstFetch && $value->class instanceof FullyQualified) {
+        return match ($this->isClassFetch($value)) {
             true => $value->class->toString(),
             false => null,
         };
@@ -89,57 +142,82 @@ class SchemaVersionResolver
         };
     }
 
-    private function resolveVersionFromSchema(string $class): null|int|string
+    /**
+     * Enums are compared by identity, so two Version enums sharing a backing value stay distinct.
+     */
+    private function resolveVersionFromSchema(string $class): null|string
     {
-        $reflection = (new ObjectType($class))->getClassReflection();
+        $case = $this->attributeArguments($class, Version::class, 'version')->first()?->getEnumCases()[0] ?? null;
 
-        if ($reflection === null) {
-            return null;
-        }
-
-        $versionAttributes = $reflection->getNativeReflection()->getAttributes(Version::class);
-
-        if ($versionAttributes === []) {
-            return null;
-        }
-
-        return $versionAttributes[0]->newInstance()->version->value;
+        return $case === null ? null : $case->getClassName().'::'.$case->getEnumCaseName();
     }
 
-    private function resolveVersionFromSchemaCollection(string $schemaCollectionClass): null|int|string
+    private function resolveVersionFromSchemaCollection(string $schemaCollectionClass): null|string
     {
-        $reflection = (new ObjectType($schemaCollectionClass))->getClassReflection();
+        $schema = $this->attributeClasses($schemaCollectionClass, Collects::class, 'schema')->first();
 
-        if ($reflection === null) {
-            return null;
-        }
+        return $schema === null ? null : $this->resolveVersionFromSchema($schema);
+    }
 
-        $collectsAttributes = $reflection->getNativeReflection()->getAttributes(Collects::class);
+    /**
+     * @param  class-string  $attribute
+     * @return Collection<int, Type>
+     */
+    public function attributeArguments(string $class, string $attribute, string $parameter): Collection
+    {
+        return collect((new ObjectType($class))->getClassReflection()?->getAttributes() ?? [])
+            ->filter(fn (AttributeReflection $reflection): bool => $reflection->getName() === $attribute)
+            ->map(fn (AttributeReflection $reflection): null|Type => $reflection->getArgumentTypes()[$parameter] ?? null)
+            ->filter()
+            ->values();
+    }
 
-        if ($collectsAttributes === []) {
-            return null;
-        }
-
-        $schemaClass = $collectsAttributes[0]->newInstance()->schema;
-
-        return $this->resolveVersionFromSchema($schemaClass);
+    /**
+     * @param  class-string  $attribute
+     * @return Collection<int, string>
+     */
+    private function attributeClasses(string $class, string $attribute, string $parameter): Collection
+    {
+        return $this->attributeArguments($class, $attribute, $parameter)
+            ->flatMap(fn (Type $type): array => $type->getConstantStrings())
+            ->map(fn (ConstantStringType $string): string => $string->getValue())
+            ->values();
     }
 
     /**
      * @param  class-string  $attributeClass
      * @return array<int, string>
      */
-    private function extractAllAttributeClassArgs(Class_ $node, string $attributeClass): array
+    private function extractAllAttributeClassArgs(ClassLike $node, string $attributeClass): array
+    {
+        return $this->attributeClassArgs($node, $attributeClass)->pluck('class')->all();
+    }
+
+    /**
+     * @param  class-string  $attributeClass
+     * @return Collection<int, array{class: string, line: int}>
+     */
+    public function attributeClassArgs(ClassLike $node, string $attributeClass): Collection
     {
         return collect($node->attrGroups)
-            ->flatMap(fn ($attrGroup) => $attrGroup->attrs)
-            ->filter(fn ($attr) => $attr->name instanceof FullyQualified
+            ->flatMap(fn (AttributeGroup $attrGroup): array => $attrGroup->attrs)
+            ->filter(fn (Attribute $attr): bool => $attr->name instanceof FullyQualified
                 && $attr->name->toString() === $attributeClass
                 && $attr->args !== [])
-            ->map(fn ($attr) => $attr->args[0]->value)
-            ->filter(fn ($value) => $value instanceof ClassConstFetch && $value->class instanceof FullyQualified)
-            ->map(fn (ClassConstFetch $value) => $value->class->toString())
-            ->values()
-            ->all();
+            ->map(fn (Attribute $attr): array => ['value' => $attr->args[0]->value, 'line' => $attr->getStartLine()])
+            ->filter(fn (array $arg): bool => $this->isClassFetch($arg['value']))
+            ->map(fn (array $arg): array => ['class' => $arg['value']->class->toString(), 'line' => $arg['line']])
+            ->values();
+    }
+
+    /**
+     * @phpstan-assert-if-true ClassConstFetch $value
+     */
+    private function isClassFetch(Expr $value): bool
+    {
+        return $value instanceof ClassConstFetch
+            && $value->class instanceof FullyQualified
+            && $value->name instanceof Identifier
+            && $value->name->toLowerString() === 'class';
     }
 }

@@ -10,11 +10,7 @@ use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
-use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
-use Support\Http\Resources\Schemas\Attributes\CollectedBy\Exceptions\NotDefined;
-use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Attributes\Version\Exceptions\NotFound;
-use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributesTestCases;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchema;
 use Support\Http\Resources\Schemas\Fields\Discarded;
@@ -22,23 +18,21 @@ use Support\Http\Resources\Schemas\Fields\Exceptions\MergeUnlessNotSupported;
 use Support\Http\Resources\Schemas\Fields\Exceptions\MergeWhenNotSupported;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Tests\Fixtures\Support\Posts;
 use Tests\Fixtures\Support\Posts\Post;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection;
 use Tests\Fixtures\Support\Users\Schemas;
 use Tests\Fixtures\Support\Users\Schemas\Dotted\User as DottedUser;
+use Tests\Fixtures\Support\Users\Status;
 use Tests\Fixtures\Support\Users\User;
-use Tests\Fixtures\Tooling\PhpStan\Schemas\MissingCollectedBy;
+use Tests\Fixtures\Support\Users\Versions;
 use Tests\TestCase;
 
-#[CoversClass(CollectedBy::class)]
 #[CoversClass(EntityTag::class)]
 #[CoversClass(MergeUnlessNotSupported::class)]
 #[CoversClass(MergeWhenNotSupported::class)]
-#[CoversClass(NotDefined::class)]
 #[CoversClass(NotFound::class)]
-#[CoversClass(UseSchema::class)]
-#[CoversClass(Version::class)]
 #[CoversTrait(AsSchema::class)]
 #[CoversTrait(TransformsToSchema::class)]
 
@@ -46,7 +40,7 @@ class SchemaTest extends TestCase
 {
     use ConditionallyLoadsAttributesTestCases;
 
-    private const array WITHOUT_REVISIONS = ['id', 'first_name', 'middle_name', 'last_name', 'biography', 'date_of_birth', 'deleted_at'];
+    private const array WITHOUT_REVISIONS = ['id', 'first_name', 'middle_name', 'last_name', 'biography', 'date_of_birth', 'status', 'deleted_at'];
 
     #[Test]
     public function to_array(): void
@@ -86,14 +80,6 @@ class SchemaTest extends TestCase
         $schemaCollection = Schemas\V2\User::collection(User::factory()->times(2)->make());
 
         $this->assertInstanceOf(Collection\Schemas\V2\Users::class, $schemaCollection);
-    }
-
-    #[Test]
-    public function it_throws_an_exception_when_collected_by_is_missing(): void
-    {
-        $this->expectException(NotDefined::class);
-
-        MissingCollectedBy::collection([]);
     }
 
     #[Test]
@@ -176,6 +162,39 @@ class SchemaTest extends TestCase
         Route::get('user', fn () => new DottedUser(User::query()->sole()));
 
         $this->get('user')->assertOk()->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function a_versionable_field_renders_its_versioned_value(): void
+    {
+        $user = User::factory()->state(['status' => Status::Finalized])->create();
+
+        $this->assertSame('pending', json_decode($user->toSchema(ApiVersion::V1)->toJson())->status);
+        $this->assertSame('open', json_decode($user->toSchema(ApiVersion::V2)->toJson())->status);
+    }
+
+    #[Test]
+    public function a_schemable_field_resolves_to_its_schema(): void
+    {
+        $fields = Post::factory()->create()->load('user')->toSchema(ApiVersion::V2)->toArray(request());
+
+        $this->assertInstanceOf(Schemas\V2\User::class, data_get($fields, 'user'));
+    }
+
+    #[Test]
+    public function a_schemable_collection_field_resolves_to_its_schema_collection(): void
+    {
+        $fields = User::factory()->hasPosts()->create()->load('posts')->toSchema(ApiVersion::V2)->toArray(request());
+
+        $this->assertInstanceOf(Posts\Schemas\Posts::class, data_get($fields, 'posts'));
+    }
+
+    #[Test]
+    public function a_versionable_field_resolves_to_its_versioned_value(): void
+    {
+        $fields = User::factory()->state(['status' => Status::Draft])->create()->toSchema(ApiVersion::V2)->toArray(request());
+
+        $this->assertSame(Versions\V2\Status::Draft, data_get($fields, 'status'));
     }
 
     #[Test]

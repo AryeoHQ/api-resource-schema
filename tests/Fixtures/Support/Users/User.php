@@ -28,6 +28,7 @@ use Tests\Fixtures\Support\TeamUser\TeamUser;
  * @property string|null $middle_initial
  * @property string $last_name
  * @property string $full_name
+ * @property Status|null $status
  */
 #[CollectedBy(Collection\Users::class)]
 #[NamedConcurrencyRevision(UserRevision::PostsOrder)]
@@ -46,7 +47,7 @@ class User extends Model implements Revisioned, Schemable
 
     protected $hidden = ['biography'];
 
-    protected $fillable = ['first_name', 'middle_name', 'last_name', 'biography', 'email', 'username', 'date_of_birth'];
+    protected $fillable = ['first_name', 'middle_name', 'last_name', 'biography', 'email', 'username', 'date_of_birth', 'status'];
 
     /**
      * @return HasMany<Post, $this>
@@ -88,6 +89,7 @@ class User extends Model implements Revisioned, Schemable
     {
         return [
             'date_of_birth' => 'date',
+            'status' => Status::class,
         ];
     }
 }

@@ -156,6 +156,71 @@ $users->toSchemaCollection(ApiVersion::V2);           // V2 UserSchemaCollection
 User::paginate(15)->toSchemaCollection(ApiVersion::V2); // Pagination metadata preserved
 ```
 
+## Versioned Fields
+
+A schema field that returns a `Schemable` model, a `SchemableCollection`, or a `Versionable` value is converted automatically:
+
+```php
+public User $author { get => $this->resource->author; }   // V2 UserSchema in a V2 schema
+public Status $status { get => $this->resource->status; } // V2 Status in the V2 version
+```
+
+### Versionable values
+
+A `Versionable` value, such as a domain enum, lists the values that represent it in each version with the repeatable `#[RepresentedBy]` attribute:
+
+```php
+use Support\Http\Resources\Schemas\Fields\Attributes\RepresentedBy\RepresentedBy;
+use Support\Http\Resources\Schemas\Fields\Concerns\TransformsToVersion;
+use Support\Http\Resources\Schemas\Fields\Contracts\Versionable;
+
+#[RepresentedBy(Api\V1\InvoiceStatus::class)]
+#[RepresentedBy(Api\V2\InvoiceStatus::class)]
+enum Status: string implements Versionable
+{
+    use TransformsToVersion;
+
+    case Draft = 'draft';
+    case Open = 'open';
+    case Finalized = 'finalized';
+    case Closed = 'closed';
+    case Void = 'void';
+}
+```
+
+Each representing value declares its `#[Version]`.
+
+A representing enum implements `VersionedEnum` and uses the `AsVersionedEnum` trait. Each case lists the source cases it represents with `#[Represents]`, which takes one or more cases and can be repeated:
+
+```php
+use Support\Http\Resources\Schemas\Attributes\Version\Version;
+use Support\Http\Resources\Schemas\Fields\Attributes\Represents\Represents;
+use Support\Http\Resources\Schemas\Fields\Contracts\VersionedEnum;
+use Support\Http\Resources\Schemas\Fields\Provides\AsVersionedEnum;
+
+#[Version(ApiVersion::V1)]
+enum InvoiceStatus: string implements VersionedEnum
+{
+    use AsVersionedEnum;
+
+    #[Represents(Status::Draft, Status::Open)]
+    #[Represents(Status::Finalized)]
+    case Pending = 'pending';
+
+    #[Represents(Status::Closed)]
+    case Paid = 'paid';
+
+    #[Represents(Status::Void)]
+    case Cancelled = 'cancelled';
+}
+```
+
+```php
+Status::Finalized->toVersion(ApiVersion::V1); // InvoiceStatus::Pending
+```
+
+Any other representing value, such as a value object, implements `Versioned` and writes `representing(Versionable $value)` itself.
+
 ## Controller Usage
 
 ```php

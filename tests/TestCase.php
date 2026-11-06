@@ -31,6 +31,7 @@ abstract class TestCase extends Testbench\TestCase
             $table->text('email');
             $table->string('username');
             $table->date('date_of_birth')->nullable();
+            $table->string('status')->nullable();
             $table->timestamps();
             $table->softDeletes();
             $table->concurrencyRevision();

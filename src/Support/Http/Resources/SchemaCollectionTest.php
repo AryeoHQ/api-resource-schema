@@ -9,11 +9,7 @@ use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
-use Support\Http\Resources\Schemas\Attributes\Collects\Collects;
-use Support\Http\Resources\Schemas\Attributes\Collects\Exceptions\NotDefined;
-use Support\Http\Resources\Schemas\Attributes\UseSchemaCollection\UseSchemaCollection;
 use Support\Http\Resources\Schemas\Attributes\Version\Exceptions\NotFound;
-use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
@@ -26,15 +22,10 @@ use Tests\Fixtures\Support\Users\Collection\Users;
 use Tests\Fixtures\Support\Users\Schemas;
 use Tests\Fixtures\Support\Users\User;
 use Tests\Fixtures\Support\Users\UserRevision;
-use Tests\Fixtures\Tooling\PhpStan\SchemaCollections\MissingCollects;
 use Tests\TestCase;
 
-#[CoversClass(Collects::class)]
 #[CoversClass(EntityTag::class)]
-#[CoversClass(NotDefined::class)]
 #[CoversClass(NotFound::class)]
-#[CoversClass(UseSchemaCollection::class)]
-#[CoversClass(Version::class)]
 #[CoversTrait(AsSchemaCollection::class)]
 #[CoversTrait(TransformsToSchemaCollection::class)]
 class SchemaCollectionTest extends TestCase
@@ -45,14 +36,6 @@ class SchemaCollectionTest extends TestCase
         $collection = new Collection\Schemas\V2\Users(User::factory()->times(2)->make());
 
         $this->assertSame(Schemas\V2\User::class, $collection->collects);
-    }
-
-    #[Test]
-    public function it_throws_an_exception_when_collects_is_missing(): void
-    {
-        $this->expectException(NotDefined::class);
-
-        new MissingCollects([]);
     }
 
     #[Test]

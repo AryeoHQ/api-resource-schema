@@ -26,7 +26,7 @@ class TransformsToSchemaCollectionCanOnlyBeAddedToSchemableCollectionTest extend
     #[Test]
     public function it_passes_when_transform_trait_is_on_schemable_collection(): void
     {
-        $this->analyse([$this->getFixturePath('PhpStan/SchemableCollections/ValidSchemableCollection.php')], []);
+        $this->analyse([$this->getFixturePath('PhpStan/SchemableCollections/ValidSchemableCollectionWithParity.php')], []);
     }
 
     #[Test]

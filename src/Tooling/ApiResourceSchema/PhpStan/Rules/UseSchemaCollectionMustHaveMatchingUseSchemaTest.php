@@ -10,6 +10,8 @@ use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Contracts\Schemable;
+use Tests\Fixtures\Tooling\PhpStan\SchemableCollections\ValidSchemableCollectionWithParity;
+use Tests\Fixtures\Tooling\PhpStan\Versions\ApiVersion;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -37,7 +39,7 @@ class UseSchemaCollectionMustHaveMatchingUseSchemaTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Schemables/CollectedByWithAdditionalVersion.php')], [
             [
-                '['.class_basename(Schemable::class).'] is missing #['.class_basename(UseSchema::class).'] for version [v1] declared by [ValidSchemableCollectionWithParity].',
+                '['.class_basename(Schemable::class).'] is missing #['.class_basename(UseSchema::class).'] for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V1->name.'] declared by ['.class_basename(ValidSchemableCollectionWithParity::class).'].',
                 17,
             ],
         ]);
