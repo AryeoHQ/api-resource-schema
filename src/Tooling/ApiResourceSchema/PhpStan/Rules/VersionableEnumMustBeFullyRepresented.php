@@ -8,16 +8,16 @@ use PhpParser\Node;
 use PhpParser\Node\Stmt\Enum_;
 use PhpParser\Node\Stmt\EnumCase;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\AttributeReflection;
+use PHPStan\Reflection\EnumCaseReflection;
+use PHPStan\Type\Enum\EnumCaseObjectType;
 use PHPStan\Type\ObjectType;
-use ReflectionAttribute;
-use ReflectionEnum;
 use Support\Http\Resources\Schemas\Fields\Attributes\RepresentedBy\RepresentedBy;
 use Support\Http\Resources\Schemas\Fields\Attributes\Represents\Represents;
 use Support\Http\Resources\Schemas\Fields\Contracts\Versionable;
 use Support\Http\Resources\Schemas\Fields\Provides\AsVersionedEnum;
 use Tooling\PhpStan\Rules\Rule;
 use Tooling\Rules\Attributes\NodeType;
-use UnitEnum;
 
 /**
  * @extends Rule<Enum_>
@@ -85,11 +85,12 @@ class VersionableEnumMustBeFullyRepresented extends Rule
             return null;
         }
 
-        return collect((new ReflectionEnum($target))->getCases())
-            ->flatMap(fn ($case): array => $case->getAttributes(Represents::class))
-            ->flatMap(fn (ReflectionAttribute $attribute): array => $attribute->getArguments())
-            ->filter(fn (mixed $case): bool => $case instanceof UnitEnum && $case::class === $source)
-            ->map(fn (UnitEnum $case): string => $case->name)
+        return collect($reflection->getEnumCases())
+            ->flatMap(fn (EnumCaseReflection $case): array => $case->getAttributes())
+            ->filter(fn (AttributeReflection $attribute): bool => $attribute->getName() === Represents::class)
+            ->flatMap(fn (AttributeReflection $attribute): array => ($attribute->getArgumentTypes()['cases'] ?? null)?->getEnumCases() ?? [])
+            ->filter(fn (EnumCaseObjectType $case): bool => $case->getClassName() === $source)
+            ->map(fn (EnumCaseObjectType $case): string => $case->getEnumCaseName())
             ->countBy();
     }
 }

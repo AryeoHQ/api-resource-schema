@@ -8,7 +8,7 @@ use Support\Http\Resources\Schemas\Fields\Attributes\RepresentedBy\RepresentedBy
 use Support\Http\Resources\Schemas\Fields\Concerns\TransformsToVersion;
 use Support\Http\Resources\Schemas\Fields\Contracts\Versionable;
 
-#[RepresentedBy(IncompleteTarget::class)]
+#[RepresentedBy(versioned: IncompleteTarget::class)]
 enum IncompleteSource: string implements Versionable
 {
     use TransformsToVersion;

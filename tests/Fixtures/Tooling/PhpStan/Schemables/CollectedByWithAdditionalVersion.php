@@ -13,7 +13,7 @@ use Tests\Fixtures\Tooling\PhpStan\SchemableCollections\ValidSchemableCollection
 use Tests\Fixtures\Tooling\PhpStan\Schemas\ValidSchemaV2;
 
 #[CollectedBy(ValidSchemableCollectionWithParity::class)]
-#[UseSchema(ValidSchemaV2::class)]
+#[UseSchema(schema: ValidSchemaV2::class)]
 class CollectedByWithAdditionalVersion extends Model implements Schemable
 {
     use TransformsToSchema;

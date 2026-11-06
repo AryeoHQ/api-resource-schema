@@ -19,7 +19,10 @@ use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeFinder;
 use PhpParser\Parser;
+use PHPStan\Reflection\AttributeReflection;
+use PHPStan\Type\Constant\ConstantStringType;
 use PHPStan\Type\ObjectType;
+use PHPStan\Type\Type;
 use Support\Http\Resources\Schemas\Attributes\Collects\Collects;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Attributes\UseSchemaCollection\UseSchemaCollection;
@@ -51,15 +54,7 @@ class SchemaVersionResolver
      */
     public function representedByTargets(string $class): Collection
     {
-        $reflection = (new ObjectType($class))->getClassReflection();
-
-        return match ($reflection === null) {
-            true => collect(),
-            false => collect($reflection->getNativeReflection()->getAttributes(RepresentedBy::class))
-                ->map(fn (\ReflectionAttribute $attribute): mixed => $attribute->getArguments()[0] ?? null)
-                ->filter(fn (mixed $target): bool => is_string($target))
-                ->values(),
-        };
+        return $this->attributeClasses($class, RepresentedBy::class, 'versioned');
     }
 
     public function versionOf(string $class): null|int|string
@@ -72,17 +67,10 @@ class SchemaVersionResolver
      */
     public function schemableVersions(string $class): Collection
     {
-        $reflection = (new ObjectType($class))->getClassReflection();
-
-        return match ($reflection === null) {
-            true => collect(),
-            false => collect($reflection->getNativeReflection()->getAttributes(UseSchema::class))
-                ->map(fn (\ReflectionAttribute $attribute): mixed => $attribute->getArguments()[0] ?? null)
-                ->filter(fn (mixed $schema): bool => is_string($schema))
-                ->map(fn (string $schema) => $this->resolveVersionFromSchema($schema))
-                ->whereNotNull()
-                ->values(),
-        };
+        return $this->attributeClasses($class, UseSchema::class, 'schema')
+            ->map(fn (string $schema) => $this->resolveVersionFromSchema($schema))
+            ->whereNotNull()
+            ->values();
     }
 
     /**
@@ -110,15 +98,10 @@ class SchemaVersionResolver
      */
     public function collectionVersions(string $collectionClass): Collection
     {
-        $collectionReflection = (new ObjectType($collectionClass))->getClassReflection();
-
-        return match ($collectionReflection === null) {
-            true => collect(),
-            false => collect($collectionReflection->getNativeReflection()->getAttributes(UseSchemaCollection::class))
-                ->map(fn (\ReflectionAttribute $attribute) => $this->resolveVersionFromSchemaCollection($attribute->newInstance()->schemaCollection))
-                ->whereNotNull()
-                ->values(),
-        };
+        return $this->attributeClasses($collectionClass, UseSchemaCollection::class, 'schemaCollection')
+            ->map(fn (string $schemaCollection) => $this->resolveVersionFromSchemaCollection($schemaCollection))
+            ->whereNotNull()
+            ->values();
     }
 
     public function collectedByClass(Class_ $node): null|string
@@ -160,38 +143,42 @@ class SchemaVersionResolver
 
     private function resolveVersionFromSchema(string $class): null|int|string
     {
-        $reflection = (new ObjectType($class))->getClassReflection();
+        $case = $this->attributeArguments($class, Version::class, 'version')->first()?->getEnumCases()[0] ?? null;
+        $value = $case?->getBackingValueType()?->getConstantScalarValues()[0] ?? null;
 
-        if ($reflection === null) {
-            return null;
-        }
-
-        $versionAttributes = $reflection->getNativeReflection()->getAttributes(Version::class);
-
-        if ($versionAttributes === []) {
-            return null;
-        }
-
-        return $versionAttributes[0]->newInstance()->version->value;
+        return is_int($value) || is_string($value) ? $value : null;
     }
 
     private function resolveVersionFromSchemaCollection(string $schemaCollectionClass): null|int|string
     {
-        $reflection = (new ObjectType($schemaCollectionClass))->getClassReflection();
+        $schema = $this->attributeClasses($schemaCollectionClass, Collects::class, 'schema')->first();
 
-        if ($reflection === null) {
-            return null;
-        }
+        return $schema === null ? null : $this->resolveVersionFromSchema($schema);
+    }
 
-        $collectsAttributes = $reflection->getNativeReflection()->getAttributes(Collects::class);
+    /**
+     * @param  class-string  $attribute
+     * @return Collection<int, Type>
+     */
+    public function attributeArguments(string $class, string $attribute, string $parameter): Collection
+    {
+        return collect((new ObjectType($class))->getClassReflection()?->getAttributes() ?? [])
+            ->filter(fn (AttributeReflection $reflection): bool => $reflection->getName() === $attribute)
+            ->map(fn (AttributeReflection $reflection): null|Type => $reflection->getArgumentTypes()[$parameter] ?? null)
+            ->filter()
+            ->values();
+    }
 
-        if ($collectsAttributes === []) {
-            return null;
-        }
-
-        $schemaClass = $collectsAttributes[0]->newInstance()->schema;
-
-        return $this->resolveVersionFromSchema($schemaClass);
+    /**
+     * @param  class-string  $attribute
+     * @return Collection<int, string>
+     */
+    private function attributeClasses(string $class, string $attribute, string $parameter): Collection
+    {
+        return $this->attributeArguments($class, $attribute, $parameter)
+            ->flatMap(fn (Type $type): array => $type->getConstantStrings())
+            ->map(fn (ConstantStringType $string): string => $string->getValue())
+            ->values();
     }
 
     /**

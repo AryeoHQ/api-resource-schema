@@ -40,7 +40,7 @@ class VersionableFieldMustSupportSchemaVersionTest extends RuleTestCase
         $this->analyse([$this->getFixturePath('PhpStan/Versionables/SchemaWithUnsupportedVersionableField.php')], [
             [
                 '['.class_basename(IncompleteSource::class).'] has no ['.class_basename(RepresentedBy::class).'] target for version ['.ApiVersion::V2->value.'] required by ['.class_basename(SchemaWithUnsupportedVersionableField::class).'].',
-                18,
+                19,
             ],
         ]);
     }

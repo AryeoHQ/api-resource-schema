@@ -22,5 +22,5 @@ class Post extends JsonResource implements Schema
 
     public string $title { get => $this->resource->title; }
 
-    public Users\User|Discarded $user { get => $this->whenLoaded('user'); }
+    public Users\User|Discarded|null $user { get => $this->whenLoaded('user'); }
 }

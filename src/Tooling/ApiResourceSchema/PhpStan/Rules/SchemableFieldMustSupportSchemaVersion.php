@@ -9,6 +9,7 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\Property;
 use PHPStan\Analyser\Scope;
 use PHPStan\Type\ObjectType;
+use Support\Http\Resources\Schemas\Attributes\Hidden\Hidden;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Contracts\Schema;
@@ -44,7 +45,7 @@ class SchemableFieldMustSupportSchemaVersion extends Rule
         }
 
         collect($node->getProperties())
-            ->filter(fn (Property $property): bool => $property->isPublic() && ! $property->isStatic() && $property->type !== null)
+            ->filter(fn (Property $property): bool => $property->isPublic() && ! $property->isStatic() && $property->type !== null && $this->doesNotHaveAttribute($property, Hidden::class))
             ->each(fn (Property $property) => collect($this->resolver->typeClassNames($property->type))
                 ->filter(fn (string $class): bool => $this->isSchemableField($class))
                 ->reject(fn (string $class): bool => $this->resolver->schemableVersions($class)->contains($version))
