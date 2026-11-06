@@ -78,3 +78,91 @@ services:
         class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaCollectionMustHaveMatchingUseSchema
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionableMustUseTransformsToVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\TransformsToVersionCanOnlyBeAddedToVersionable
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionedEnumMustUseAsVersionedEnum
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\AsVersionedEnumCanOnlyBeAddedToVersionedEnum
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionableMustDefineRepresentedBy
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\RepresentedByCanOnlyBeAddedToVersionable
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\RepresentedByTargetMustBeVersioned
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionedMustDefineVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaTargetMustBeSchema
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaCollectionTargetMustBeSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\CollectsTargetMustBeSchema
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\CollectedByTargetMustBeSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\RepresentedByMustNotDuplicateVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaMustNotDuplicateVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\UseSchemaCollectionMustNotDuplicateVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\RepresentsCanOnlyBeAddedToAsVersionedEnum
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\EnumImplementingVersionedMustImplementVersionedEnum
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionedEnumMustNotDefineRepresenting
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionableEnumMustBeFullyRepresented
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\VersionableFieldMustSupportSchemaVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableFieldMustSupportSchemaVersion
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableCollectionFieldMustSupportSchemaVersion
+        tags:
+            - phpstan.rules.rule

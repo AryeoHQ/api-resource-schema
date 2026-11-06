@@ -12,6 +12,7 @@ use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Http\Resources\Schemas\Attributes;
 use Support\Http\Resources\Schemas\Concerns\ConditionallyLoadsAttributes;
 use Support\Http\Resources\Schemas\Contracts;
+use Support\Http\Resources\Schemas\Fields\Contracts\Versionable;
 use Support\Http\Resources\Schemas\Reflection\Property;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
 
@@ -63,9 +64,15 @@ trait AsSchema
      */
     public function toArray(Request $request): array
     {
-        return $this->fields->mapWithKeys(
-            fn (Property $property) => [$property->name->snake()->toString() => $this->{$property->name}]
-        )->toArray();
+        return $this->fields
+            ->mapWithKeys(fn (Property $property): array => [$property->name->snake()->toString() => $this->{$property->name}])
+            ->map(fn (mixed $value): mixed => match (true) {
+                $value instanceof Contracts\Schemable => $value->toSchema($this->schemaVersion),
+                $value instanceof Contracts\SchemableCollection => $value->toSchemaCollection($this->schemaVersion),
+                $value instanceof Versionable => $value->toVersion($this->schemaVersion),
+                default => $value,
+            })
+            ->toArray();
     }
 
     public function withResponse(Request $request, JsonResponse $response): void

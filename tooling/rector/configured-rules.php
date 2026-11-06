@@ -8,6 +8,10 @@ use Support\Http\Resources\Schemas\Concerns\TransformsToSchema;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Support\Http\Resources\Schemas\Provides\AsSchemaCollection;
+use Support\Http\Resources\Schemas\Fields\Concerns\TransformsToVersion;
+use Support\Http\Resources\Schemas\Fields\Contracts\Versionable;
+use Support\Http\Resources\Schemas\Fields\Contracts\VersionedEnum;
+use Support\Http\Resources\Schemas\Fields\Provides\AsVersionedEnum;
 use Tooling\Rector\Rules\AddInterfaceByTrait;
 use Tooling\Rector\Rules\AddTraitByInterface;
 
@@ -17,11 +21,15 @@ return [
         AsSchemaCollection::class => SchemaCollection::class,
         TransformsToSchema::class => Schemable::class,
         TransformsToSchemaCollection::class => SchemableCollection::class,
+        TransformsToVersion::class => Versionable::class,
+        AsVersionedEnum::class => VersionedEnum::class,
     ],
     AddTraitByInterface::class => [
         Schema::class => AsSchema::class,
         SchemaCollection::class => AsSchemaCollection::class,
         Schemable::class => TransformsToSchema::class,
         SchemableCollection::class => TransformsToSchemaCollection::class,
+        Versionable::class => TransformsToVersion::class,
+        VersionedEnum::class => AsVersionedEnum::class,
     ],
 ];

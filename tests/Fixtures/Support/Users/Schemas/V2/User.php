@@ -6,15 +6,15 @@ namespace Tests\Fixtures\Support\Users\Schemas\V2;
 
 use Carbon\Carbon;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Http\Resources\Json\ResourceCollection;
 use Support\Http\Resources\Schemas;
 use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
 use Support\Http\Resources\Schemas\Attributes\Version\Version;
 use Support\Http\Resources\Schemas\Fields\Discarded;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
-use Tests\Fixtures\Support\Posts\Schemas\Posts;
+use Tests\Fixtures\Support\Posts\Collection\Posts;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\Fixtures\Support\Users\Collection\Schemas\V2\Users;
+use Tests\Fixtures\Support\Users\Status;
 
 #[CollectedBy(Users::class)]
 #[Version(ApiVersion::V2)]
@@ -41,9 +41,9 @@ class User extends JsonResource implements Schemas\Contracts\Schema
 
     public Carbon|Discarded $deletedAt { get => $this->whenNotNull($this->resource->deleted_at); }
 
-    public ResourceCollection|Discarded $posts {
-        get => $this->whenLoaded('posts', fn () => Posts::make($this->resource->posts));
-    }
+    public Status|Discarded $status { get => $this->whenNotNull($this->resource->status); }
+
+    public Posts|Discarded $posts { get => $this->whenLoaded('posts'); }
 
     public int|Discarded $postsCount { get => $this->whenCounted('posts', fn () => $this->resource->posts_count); }
 
