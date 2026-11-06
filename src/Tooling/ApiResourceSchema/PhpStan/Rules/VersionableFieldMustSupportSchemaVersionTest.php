@@ -10,8 +10,11 @@ use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Resources\Schemas\Fields\Attributes\RepresentedBy\RepresentedBy;
 use Tests\Fixtures\Tooling\PhpStan\Versionables\IncompleteSource;
+use Tests\Fixtures\Tooling\PhpStan\Versionables\SchemaWithMismatchedVersionEnum;
 use Tests\Fixtures\Tooling\PhpStan\Versionables\SchemaWithUnsupportedVersionableField;
+use Tests\Fixtures\Tooling\PhpStan\Versionables\ValidSource;
 use Tests\Fixtures\Tooling\PhpStan\Versions\ApiVersion;
+use Tests\Fixtures\Tooling\PhpStan\Versions\InternalVersion;
 use Tests\Tooling\Concerns\GetsFixtures;
 
 /**
@@ -39,8 +42,19 @@ class VersionableFieldMustSupportSchemaVersionTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Versionables/SchemaWithUnsupportedVersionableField.php')], [
             [
-                '['.class_basename(IncompleteSource::class).'] has no ['.class_basename(RepresentedBy::class).'] target for version ['.ApiVersion::V2->value.'] required by ['.class_basename(SchemaWithUnsupportedVersionableField::class).'].',
+                '['.class_basename(IncompleteSource::class).'] has no ['.class_basename(RepresentedBy::class).'] target for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V2->name.'] required by ['.class_basename(SchemaWithUnsupportedVersionableField::class).'].',
                 19,
+            ],
+        ]);
+    }
+
+    #[Test]
+    public function it_fails_when_the_target_version_only_matches_by_value(): void
+    {
+        $this->analyse([$this->getFixturePath('PhpStan/Versionables/SchemaWithMismatchedVersionEnum.php')], [
+            [
+                '['.class_basename(ValidSource::class).'] has no ['.class_basename(RepresentedBy::class).'] target for version ['.class_basename(InternalVersion::class).'::'.InternalVersion::V1->name.'] required by ['.class_basename(SchemaWithMismatchedVersionEnum::class).'].',
+                18,
             ],
         ]);
     }

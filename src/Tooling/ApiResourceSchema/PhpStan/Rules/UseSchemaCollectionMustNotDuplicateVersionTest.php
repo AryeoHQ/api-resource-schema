@@ -37,7 +37,7 @@ class UseSchemaCollectionMustNotDuplicateVersionTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/SchemableCollections/DuplicateSchemaCollectionVersions.php')], [
             [
-                '['.class_basename(UseSchemaCollection::class).'] declares more than one schema collection for version ['.ApiVersion::V1->value.'].',
+                '['.class_basename(UseSchemaCollection::class).'] declares more than one schema collection for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V1->name.'].',
                 15,
             ],
         ]);

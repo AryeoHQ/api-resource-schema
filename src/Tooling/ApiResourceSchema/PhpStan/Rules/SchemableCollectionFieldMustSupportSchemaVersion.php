@@ -50,7 +50,7 @@ class SchemableCollectionFieldMustSupportSchemaVersion extends Rule
                 ->filter(fn (string $class): bool => $this->isSchemableCollectionField($class))
                 ->reject(fn (string $class): bool => $this->resolver->collectionVersions($class)->contains($version))
                 ->each(fn (string $class) => $this->error(
-                    '['.class_basename($class).'] has no ['.class_basename(UseSchemaCollection::class).'] schema collection for version ['.$version.'] required by ['.class_basename($schema).'].',
+                    '['.class_basename($class).'] has no ['.class_basename(UseSchemaCollection::class).'] schema collection for version ['.class_basename($version).'] required by ['.class_basename($schema).'].',
                     $property->getStartLine(),
                     'SchemableCollection.field.UseSchemaCollection.required'
                 )));

@@ -39,7 +39,7 @@ class SchemableFieldMustSupportSchemaVersionTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Schemas/SchemaWithUnsupportedSchemableFields.php')], [
             [
-                '['.class_basename(CollectedByWithAdditionalVersion::class).'] has no ['.class_basename(UseSchema::class).'] schema for version ['.ApiVersion::V1->value.'] required by ['.class_basename(SchemaWithUnsupportedSchemableFields::class).'].',
+                '['.class_basename(CollectedByWithAdditionalVersion::class).'] has no ['.class_basename(UseSchema::class).'] schema for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V1->name.'] required by ['.class_basename(SchemaWithUnsupportedSchemableFields::class).'].',
                 21,
             ],
         ]);

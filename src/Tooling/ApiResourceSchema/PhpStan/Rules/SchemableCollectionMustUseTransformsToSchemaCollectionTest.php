@@ -26,7 +26,7 @@ class SchemableCollectionMustUseTransformsToSchemaCollectionTest extends RuleTes
     #[Test]
     public function it_passes_when_schemable_collection_uses_transform_trait(): void
     {
-        $this->analyse([$this->getFixturePath('PhpStan/SchemableCollections/ValidSchemableCollection.php')], []);
+        $this->analyse([$this->getFixturePath('PhpStan/SchemableCollections/ValidSchemableCollectionWithParity.php')], []);
     }
 
     #[Test]

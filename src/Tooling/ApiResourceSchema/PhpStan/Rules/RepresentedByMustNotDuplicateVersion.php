@@ -39,7 +39,7 @@ class RepresentedByMustNotDuplicateVersion extends Rule
             ->groupBy('version')
             ->filter(fn ($targets): bool => $targets->count() > 1)
             ->each(fn ($targets, $version) => $targets->skip(1)->each(fn (array $target) => $this->error(
-                '['.class_basename(RepresentedBy::class).'] declares more than one target for version ['.$version.'].',
+                '['.class_basename(RepresentedBy::class).'] declares more than one target for version ['.class_basename($version).'].',
                 $target['line'],
                 'RepresentedBy.version.duplicate'
             )));

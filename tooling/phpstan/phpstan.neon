@@ -63,6 +63,14 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableMustDefineUseSchema
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableCollectionMustDefineUseSchemaCollection
+        tags:
+            - phpstan.rules.rule
+    -
         class: Tooling\ApiResourceSchema\PhpStan\Rules\SchemableCollectedByMustNotBeBaseCollection
         tags:
             - phpstan.rules.rule

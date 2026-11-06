@@ -33,11 +33,17 @@ class RepresentedByMustNotDuplicateVersionTest extends RuleTestCase
     }
 
     #[Test]
+    public function it_passes_when_targets_share_a_value_from_different_version_enums(): void
+    {
+        $this->analyse([$this->getFixturePath('PhpStan/Versionables/SharedValueVersions.php')], []);
+    }
+
+    #[Test]
     public function it_fails_when_two_targets_share_a_version(): void
     {
         $this->analyse([$this->getFixturePath('PhpStan/Versionables/DuplicateVersions.php')], [
             [
-                '['.class_basename(RepresentedBy::class).'] declares more than one target for version ['.ApiVersion::V1->value.'].',
+                '['.class_basename(RepresentedBy::class).'] declares more than one target for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V1->name.'].',
                 12,
             ],
         ]);

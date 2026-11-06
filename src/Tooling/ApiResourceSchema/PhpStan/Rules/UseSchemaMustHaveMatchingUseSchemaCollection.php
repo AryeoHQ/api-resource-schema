@@ -62,7 +62,7 @@ class UseSchemaMustHaveMatchingUseSchemaCollection extends Rule
         $collectionLine = $this->resolver->classStartLine($collectionFile, $collectionReflection->getNativeReflection());
 
         $missing->each(fn (string $version) => $this->errors->push(
-            RuleErrorBuilder::message('['.class_basename(SchemableCollection::class).'] is missing #['.class_basename(UseSchemaCollection::class).'] for version ['.$version.'] declared by ['.class_basename($node->namespacedName->toString()).'].')
+            RuleErrorBuilder::message('['.class_basename(SchemableCollection::class).'] is missing #['.class_basename(UseSchemaCollection::class).'] for version ['.class_basename($version).'] declared by ['.class_basename($node->namespacedName->toString()).'].')
                 ->file($collectionFile)
                 ->line($collectionLine)
                 ->identifier('UseSchema.CollectedBy.UseSchemaCollection.matchingRequired')

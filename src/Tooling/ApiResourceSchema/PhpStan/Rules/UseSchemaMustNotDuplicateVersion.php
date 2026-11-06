@@ -37,7 +37,7 @@ class UseSchemaMustNotDuplicateVersion extends Rule
             ->groupBy('version')
             ->filter(fn ($schemas): bool => $schemas->count() > 1)
             ->each(fn ($schemas, $version) => $schemas->skip(1)->each(fn (array $schema) => $this->error(
-                '['.class_basename(UseSchema::class).'] declares more than one schema for version ['.$version.'].',
+                '['.class_basename(UseSchema::class).'] declares more than one schema for version ['.class_basename($version).'].',
                 $schema['line'],
                 'UseSchema.version.duplicate'
             )));

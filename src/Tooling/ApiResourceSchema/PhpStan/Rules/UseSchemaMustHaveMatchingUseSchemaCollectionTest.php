@@ -39,7 +39,7 @@ class UseSchemaMustHaveMatchingUseSchemaCollectionTest extends RuleTestCase
     {
         $this->analyse([$this->getFixturePath('PhpStan/Schemables/CollectedByWithMissingVersion.php')], [
             [
-                '['.class_basename(SchemableCollection::class).'] is missing #['.class_basename(UseSchemaCollection::class).'] for version ['.ApiVersion::V1->value.'] declared by ['.class_basename(CollectedByWithMissingVersion::class).'].',
+                '['.class_basename(SchemableCollection::class).'] is missing #['.class_basename(UseSchemaCollection::class).'] for version ['.class_basename(ApiVersion::class).'::'.ApiVersion::V1->name.'] declared by ['.class_basename(CollectedByWithMissingVersion::class).'].',
                 14,
             ],
         ]);

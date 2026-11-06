@@ -53,7 +53,7 @@ class VersionableFieldMustSupportSchemaVersion extends Rule
                     ->map(fn (string $target) => $this->resolver->versionOf($target))
                     ->contains($version))
                 ->each(fn (string $class) => $this->error(
-                    '['.class_basename($class).'] has no ['.class_basename(RepresentedBy::class).'] target for version ['.$version.'] required by ['.class_basename($schema).'].',
+                    '['.class_basename($class).'] has no ['.class_basename(RepresentedBy::class).'] target for version ['.class_basename($version).'] required by ['.class_basename($schema).'].',
                     $property->getStartLine(),
                     'Versionable.field.RepresentedBy.required'
                 )));

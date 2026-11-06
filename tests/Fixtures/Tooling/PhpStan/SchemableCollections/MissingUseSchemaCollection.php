@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchemaCollection;
 use Support\Http\Resources\Schemas\Contracts\SchemableCollection;
 
-class ValidSchemableCollection extends EloquentCollection implements SchemableCollection
+class MissingUseSchemaCollection extends EloquentCollection implements SchemableCollection
 {
     use TransformsToSchemaCollection;
 }

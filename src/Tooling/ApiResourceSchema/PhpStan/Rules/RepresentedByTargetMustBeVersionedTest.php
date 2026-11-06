@@ -34,6 +34,12 @@ class RepresentedByTargetMustBeVersionedTest extends RuleTestCase
     }
 
     #[Test]
+    public function it_ignores_targets_that_are_not_class_references(): void
+    {
+        $this->analyse([$this->getFixturePath('PhpStan/Versionables/ConstantTarget.php')], []);
+    }
+
+    #[Test]
     public function it_fails_when_a_target_is_not_versioned(): void
     {
         $this->analyse([$this->getFixturePath('PhpStan/Versionables/InvalidTargets.php')], [

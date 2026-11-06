@@ -50,7 +50,7 @@ class SchemableFieldMustSupportSchemaVersion extends Rule
                 ->filter(fn (string $class): bool => $this->isSchemableField($class))
                 ->reject(fn (string $class): bool => $this->resolver->schemableVersions($class)->contains($version))
                 ->each(fn (string $class) => $this->error(
-                    '['.class_basename($class).'] has no ['.class_basename(UseSchema::class).'] schema for version ['.$version.'] required by ['.class_basename($schema).'].',
+                    '['.class_basename($class).'] has no ['.class_basename(UseSchema::class).'] schema for version ['.class_basename($version).'] required by ['.class_basename($schema).'].',
                     $property->getStartLine(),
                     'Schemable.field.UseSchema.required'
                 )));

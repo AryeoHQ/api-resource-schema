@@ -44,7 +44,7 @@ class UseSchemaCollectionMustHaveMatchingUseSchema extends Rule
         $this->resolver->collectionVersions($collectionClass)
             ->diff($this->resolver->modelVersions($node))
             ->each(fn (string $version) => $this->error(
-                '['.class_basename(Schemable::class).'] is missing #['.class_basename(UseSchema::class).'] for version ['.$version.'] declared by ['.class_basename($collectionClass).'].',
+                '['.class_basename(Schemable::class).'] is missing #['.class_basename(UseSchema::class).'] for version ['.class_basename($version).'] declared by ['.class_basename($collectionClass).'].',
 
                 $node->name?->getStartLine() ?? $node->getStartLine(),
                 'UseSchemaCollection.Collects.UseSchema.matchingRequired'

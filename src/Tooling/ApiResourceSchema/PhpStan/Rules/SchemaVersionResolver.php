@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\ComplexType;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\IntersectionType;
@@ -39,7 +40,7 @@ class SchemaVersionResolver
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, int|string>
+     * @return \Illuminate\Support\Collection<int, string>
      */
     public function modelVersions(Class_ $node): Collection
     {
@@ -57,13 +58,13 @@ class SchemaVersionResolver
         return $this->attributeClasses($class, RepresentedBy::class, 'versioned');
     }
 
-    public function versionOf(string $class): null|int|string
+    public function versionOf(string $class): null|string
     {
         return $this->resolveVersionFromSchema($class);
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, int|string>
+     * @return \Illuminate\Support\Collection<int, string>
      */
     public function schemableVersions(string $class): Collection
     {
@@ -88,13 +89,13 @@ class SchemaVersionResolver
         };
     }
 
-    public function schemaCollectionVersionOf(string $class): null|int|string
+    public function schemaCollectionVersionOf(string $class): null|string
     {
         return $this->resolveVersionFromSchemaCollection($class);
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, int|string>
+     * @return \Illuminate\Support\Collection<int, string>
      */
     public function collectionVersions(string $collectionClass): Collection
     {
@@ -117,7 +118,7 @@ class SchemaVersionResolver
 
         $value = $attr->args[0]->value;
 
-        return match ($value instanceof ClassConstFetch && $value->class instanceof FullyQualified) {
+        return match ($this->isClassFetch($value)) {
             true => $value->class->toString(),
             false => null,
         };
@@ -141,15 +142,17 @@ class SchemaVersionResolver
         };
     }
 
-    private function resolveVersionFromSchema(string $class): null|int|string
+    /**
+     * Enums are compared by identity, so two Version enums sharing a backing value stay distinct.
+     */
+    private function resolveVersionFromSchema(string $class): null|string
     {
         $case = $this->attributeArguments($class, Version::class, 'version')->first()?->getEnumCases()[0] ?? null;
-        $value = $case?->getBackingValueType()?->getConstantScalarValues()[0] ?? null;
 
-        return is_int($value) || is_string($value) ? $value : null;
+        return $case === null ? null : $case->getClassName().'::'.$case->getEnumCaseName();
     }
 
-    private function resolveVersionFromSchemaCollection(string $schemaCollectionClass): null|int|string
+    private function resolveVersionFromSchemaCollection(string $schemaCollectionClass): null|string
     {
         $schema = $this->attributeClasses($schemaCollectionClass, Collects::class, 'schema')->first();
 
@@ -202,8 +205,19 @@ class SchemaVersionResolver
                 && $attr->name->toString() === $attributeClass
                 && $attr->args !== [])
             ->map(fn (Attribute $attr): array => ['value' => $attr->args[0]->value, 'line' => $attr->getStartLine()])
-            ->filter(fn (array $arg): bool => $arg['value'] instanceof ClassConstFetch && $arg['value']->class instanceof FullyQualified)
+            ->filter(fn (array $arg): bool => $this->isClassFetch($arg['value']))
             ->map(fn (array $arg): array => ['class' => $arg['value']->class->toString(), 'line' => $arg['line']])
             ->values();
+    }
+
+    /**
+     * @phpstan-assert-if-true ClassConstFetch $value
+     */
+    private function isClassFetch(Expr $value): bool
+    {
+        return $value instanceof ClassConstFetch
+            && $value->class instanceof FullyQualified
+            && $value->name instanceof Identifier
+            && $value->name->toLowerString() === 'class';
     }
 }
